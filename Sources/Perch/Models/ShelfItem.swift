@@ -15,6 +15,12 @@ struct ShelfItem: Identifiable, Codable, Equatable {
     var isRecent = false
     /// Text that matched a secret / card-number pattern.
     var isSensitive = false
+    /// When set, the card stays at the front of the shelf (in the order it was fixed) and never expires.
+    var fixedAt: Date?
+
+    var isFixed: Bool { fixedAt != nil }
+    /// Starred and fixed items are kept through expiry, history trimming and Clear Shelf.
+    var isKept: Bool { isStarred || isFixed }
 
     var text: String?
     /// Path of a stored image, relative to the store's files folder.

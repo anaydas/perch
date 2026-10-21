@@ -9,11 +9,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: StatusItemController?
     private var clipboard: ClipboardWatcher?
     private var screenshots: ScreenshotWatcher?
+    private lazy var claudeSessions = ClaudeSessionWatcher(settings: settings)
+    private lazy var claudeUsage = ClaudeUsageWatcher(settings: settings)
     private let hotKeys = HotKeyCenter()
     private lazy var settingsWindow = SettingsWindowController(settings: settings, store: store)
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        let island = IslandController(store: store, settings: settings)
+        claudeSessions.start()
+        claudeUsage.start()
+        let island = IslandController(store: store, settings: settings,
+                                      claudeSessions: claudeSessions, claudeUsage: claudeUsage)
         island.onOpenSettings = { [weak self] in self?.settingsWindow.show() }
         self.island = island
 

@@ -1,7 +1,7 @@
 import AppKit
 
 @main
-enum NotchShelfMain {
+enum PerchMain {
     @MainActor
     static func main() {
         let app = NSApplication.shared

@@ -13,8 +13,14 @@ final class ShelfStore: ObservableObject {
     /// Pasteboard changeCount right after our own copy, so clipboard history ignores it.
     private(set) var lastOwnChangeCount = -1
 
-    var pinned: [ShelfItem] { items.filter { !$0.isRecent } }
-    var recent: [ShelfItem] { items.filter { $0.isRecent } }
+    /// Display order: fixed cards first (in the order they were fixed), then newest first.
+    var ordered: [ShelfItem] {
+        let fixed = items.filter(\.isFixed).sorted { $0.fixedAt! < $1.fixedAt! }
+        let rest = items.filter { !$0.isFixed }.sorted { $0.createdAt > $1.createdAt }
+        return fixed + rest
+    }
+    var pinned: [ShelfItem] { ordered.filter { !$0.isRecent } }
+    var recent: [ShelfItem] { ordered.filter { $0.isRecent } }
 
     private let settings: AppSettings
     private let directory: URL
@@ -24,10 +30,24 @@ final class ShelfStore: ObservableObject {
     private var expiryTimer: Timer?
     private let thumbnails = NSCache<NSString, NSImage>()
 
+    /// Size and icon of referenced files, read off the main thread.
+    struct FileInfo {
+        var size: Int64?
+        var icon: NSImage?
+    }
+    @Published private(set) var fileInfo: [UUID: FileInfo] = [:]
+    private var fileInfoRequested = Set<UUID>()
+
     init(settings: AppSettings) {
         self.settings = settings
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        directory = support.appendingPathComponent("NotchShelf", isDirectory: true)
+        directory = support.appendingPathComponent("Perch", isDirectory: true)
+        // The app used to be called Notch Shelf: bring its items along on first launch.
+        let oldDirectory = support.appendingPathComponent("NotchShelf", isDirectory: true)
+        if !FileManager.default.fileExists(atPath: directory.path),
+           FileManager.default.fileExists(atPath: oldDirectory.path) {
+            try? FileManager.default.moveItem(at: oldDirectory, to: directory)
+        }
         filesDirectory = directory.appendingPathComponent("files", isDirectory: true)
         try? FileManager.default.createDirectory(at: filesDirectory, withIntermediateDirectories: true)
         load()
@@ -66,14 +86,23 @@ final class ShelfStore: ObservableObject {
     }
 
     func addImage(from url: URL, recent: Bool = false) {
-        guard let data = try? Data(contentsOf: url) else { return }
         let ext = url.pathExtension.isEmpty ? "png" : url.pathExtension.lowercased()
-        storeImage(data: data, ext: ext, title: url.deletingPathExtension().lastPathComponent, recent: recent)
+        let title = url.deletingPathExtension().lastPathComponent
+        // Read off the main thread: a privacy prompt for Desktop/Downloads would otherwise freeze the UI.
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let data = try? Data(contentsOf: url) else { return }
+            DispatchQueue.main.async {
+                self?.storeImage(data: data, ext: ext, title: title, recent: recent)
+            }
+        }
     }
 
     func addFile(_ url: URL, recent: Bool = false) {
+        // Same file again: bring it to the front.
         if let index = items.firstIndex(where: { $0.kind == .file && $0.fileURL == url }) {
-            if !recent { items[index].isRecent = false; scheduleSave() }
+            items[index].createdAt = Date()
+            if !recent { items[index].isRecent = false }
+            scheduleSave()
             return
         }
         var item = ShelfItem(kind: .file, title: url.lastPathComponent)
@@ -202,10 +231,30 @@ final class ShelfStore: ObservableObject {
         return image
     }
 
+    /// Touching a file in Desktop/Documents/Downloads can raise a privacy prompt that blocks
+    /// the calling thread until it's answered, so never read file details while rendering.
+    func info(for item: ShelfItem) -> FileInfo? {
+        if let info = fileInfo[item.id] { return info }
+        guard let url = item.fileURL, !fileInfoRequested.contains(item.id) else { return nil }
+        fileInfoRequested.insert(item.id)
+        let id = item.id
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            var info = FileInfo()
+            if let attributes = try? FileManager.default.attributesOfItem(atPath: url.path) {
+                info.size = (attributes[.size] as? NSNumber)?.int64Value
+                info.icon = NSWorkspace.shared.icon(forFile: url.path)
+            }
+            DispatchQueue.main.async { self?.fileInfo[id] = info }
+        }
+        return nil
+    }
+
     // MARK: - Managing
 
     func remove(_ item: ShelfItem) {
         items.removeAll { $0.id == item.id }
+        fileInfo[item.id] = nil
+        fileInfoRequested.remove(item.id)
         deleteFiles(of: item)
         scheduleSave()
     }
@@ -214,21 +263,27 @@ final class ShelfStore: ObservableObject {
         update(item) { $0.isStarred.toggle() }
     }
 
+    /// Fixes a card at the front of the shelf, or releases it back into date order.
+    func toggleFixed(_ item: ShelfItem) {
+        update(item) { $0.fixedAt = $0.fixedAt == nil ? Date() : nil }
+    }
+
     /// Moves a clipboard-history item onto the shelf proper.
     func pin(_ item: ShelfItem) {
         update(item) { $0.isRecent = false }
     }
 
     func clearRecent() {
-        let removed = items.filter { $0.isRecent && !$0.isStarred }
-        items.removeAll { $0.isRecent && !$0.isStarred }
+        let removed = items.filter { $0.isRecent && !$0.isKept }
+        items.removeAll { $0.isRecent && !$0.isKept }
         removed.forEach(deleteFiles(of:))
         scheduleSave()
     }
 
+    /// Copies show on the shelf too, so this clears everything that isn't starred or fixed.
     func clearShelf() {
-        let removed = items.filter { !$0.isRecent && !$0.isStarred }
-        items.removeAll { !$0.isRecent && !$0.isStarred }
+        let removed = items.filter { !$0.isKept }
+        items.removeAll { !$0.isKept }
         removed.forEach(deleteFiles(of:))
         scheduleSave()
     }
@@ -237,7 +292,7 @@ final class ShelfStore: ObservableObject {
         let hours = settings.expiryHours
         guard hours > 0 else { return }
         let cutoff = Date().addingTimeInterval(-Double(hours) * 3600)
-        let expired = items.filter { !$0.isStarred && $0.createdAt < cutoff }
+        let expired = items.filter { !$0.isKept && $0.createdAt < cutoff }
         guard !expired.isEmpty else { return }
         let ids = Set(expired.map(\.id))
         items.removeAll { ids.contains($0.id) }
@@ -261,7 +316,7 @@ final class ShelfStore: ObservableObject {
     }
 
     private func trimRecent() {
-        let recents = items.filter { $0.isRecent && !$0.isStarred }
+        let recents = items.filter { $0.isRecent && !$0.isKept }.sorted { $0.createdAt > $1.createdAt }
         guard recents.count > maxRecent else { return }
         let overflow = recents.suffix(recents.count - maxRecent)
         let ids = Set(overflow.map(\.id))
@@ -280,7 +335,7 @@ final class ShelfStore: ObservableObject {
             try FileManager.default.createDirectory(at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
             try data.write(to: destination)
         } catch {
-            NSLog("NotchShelf: could not store image: \(error)")
+            NSLog("Perch: could not store image: \(error)")
             return
         }
         var item = ShelfItem(id: id, kind: .image, title: title)

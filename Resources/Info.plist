@@ -3,15 +3,17 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>Notch Shelf</string>
+    <string>Perch</string>
     <key>CFBundleDisplayName</key>
-    <string>Notch Shelf</string>
+    <string>Perch</string>
     <key>CFBundleIdentifier</key>
-    <string>com.anaydas.NotchShelf</string>
+    <string>com.anaydas.Perch</string>
     <key>CFBundleExecutable</key>
-    <string>NotchShelf</string>
+    <string>Perch</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>CFBundleShortVersionString</key>
     <string>0.1.0</string>
     <key>CFBundleVersion</key>
@@ -22,11 +24,13 @@
     <true/>
     <key>NSHighResolutionCapable</key>
     <true/>
+    <key>NSAppleEventsUsageDescription</key>
+    <string>Perch selects the Terminal or iTerm2 tab where a Claude Code session is running when you click it.</string>
     <key>NSDesktopFolderUsageDescription</key>
-    <string>Notch Shelf reads new screenshots saved to your Desktop so it can pin them automatically.</string>
+    <string>Perch reads new screenshots saved to your Desktop so it can pin them automatically.</string>
     <key>NSDocumentsFolderUsageDescription</key>
-    <string>Notch Shelf reads files you drop on the shelf.</string>
+    <string>Perch reads new screenshots and files you drop on the shelf.</string>
     <key>NSDownloadsFolderUsageDescription</key>
-    <string>Notch Shelf reads files you drop on the shelf.</string>
+    <string>Perch reads files you drop on the shelf.</string>
 </dict>
 </plist>

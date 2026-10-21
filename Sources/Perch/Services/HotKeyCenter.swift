@@ -37,7 +37,7 @@ final class HotKeyCenter {
         let hotKeyID = EventHotKeyID(signature: OSType(0x4E53_484C), id: id) // "NSHL"
         let status = RegisterEventHotKey(UInt32(keyCode), UInt32(modifiers), hotKeyID, GetApplicationEventTarget(), 0, &ref)
         if status != noErr {
-            NSLog("NotchShelf: could not register hot key \(keyCode) (status \(status)); another app may be using it.")
+            NSLog("Perch: could not register hot key \(keyCode) (status \(status)); another app may be using it.")
         }
         hotKeyRefs.append(ref)
     }
