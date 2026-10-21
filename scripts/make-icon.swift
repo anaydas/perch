@@ -1,4 +1,5 @@
-// Draws the Perch app icon (a little bird perched on the island) and writes Resources/AppIcon.icns.
+// Draws the Perch app icon (a little bird perched on the island) and writes Resources/AppIcon.icns,
+// plus Resources/social-preview.png (1280×640, for GitHub → Settings → Social preview).
 // Run from the project folder:  swift scripts/make-icon.swift
 import AppKit
 
@@ -63,6 +64,52 @@ func png(size: Int) -> Data {
     return rep.representation(using: .png, properties: [:])!
 }
 
+/// GitHub social preview: the icon on the left, name and tagline on the right.
+func socialPreview() -> Data {
+    let width = 1280, height = 640
+    let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: width, pixelsHigh: height, bitsPerSample: 8,
+                               samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+                               colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)!
+    NSGraphicsContext.saveGraphicsState()
+    let context = NSGraphicsContext(bitmapImageRep: rep)!
+    NSGraphicsContext.current = context
+    let ctx = context.cgContext
+
+    NSColor(srgbRed: 0.07, green: 0.08, blue: 0.11, alpha: 1).setFill()
+    NSRect(x: 0, y: 0, width: width, height: height).fill()
+
+    // Icon (its canvas includes Apple's margin, so draw it a bit larger than it looks).
+    let iconSize: CGFloat = 520
+    ctx.saveGState()
+    ctx.translateBy(x: 70, y: (CGFloat(height) - iconSize) / 2)
+    drawIcon(in: ctx, size: iconSize)
+    ctx.restoreGState()
+
+    let left: CGFloat = 610
+    let title = NSAttributedString(string: "Perch", attributes: [
+        .font: NSFont.systemFont(ofSize: 132, weight: .bold),
+        .foregroundColor: NSColor.white,
+    ])
+    title.draw(at: NSPoint(x: left - 6, y: 318))
+
+    let tagline = NSAttributedString(string: "A shelf at the top of your Mac screen\nfor screenshots, text and files.", attributes: [
+        .font: NSFont.systemFont(ofSize: 38, weight: .regular),
+        .foregroundColor: NSColor(white: 0.78, alpha: 1),
+        .paragraphStyle: { let p = NSMutableParagraphStyle(); p.lineSpacing = 8; return p }(),
+    ])
+    tagline.draw(in: NSRect(x: left, y: 190, width: 620, height: 120))
+
+    let accent = NSColor(srgbRed: 0.851, green: 0.467, blue: 0.341, alpha: 1)
+    let footer = NSAttributedString(string: "macOS 13+  ·  Swift  ·  Claude Code sessions and usage", attributes: [
+        .font: NSFont.systemFont(ofSize: 26, weight: .medium),
+        .foregroundColor: accent,
+    ])
+    footer.draw(at: NSPoint(x: left, y: 130))
+
+    NSGraphicsContext.restoreGraphicsState()
+    return rep.representation(using: .png, properties: [:])!
+}
+
 let fm = FileManager.default
 let iconset = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("AppIcon.iconset")
 try? fm.removeItem(at: iconset)
@@ -73,6 +120,7 @@ for base in [16, 32, 128, 256, 512] {
     try png(size: base * 2).write(to: iconset.appendingPathComponent("icon_\(base)x\(base)@2x.png"))
 }
 try png(size: 1024).write(to: URL(fileURLWithPath: "Resources/AppIcon-1024.png"))
+try socialPreview().write(to: URL(fileURLWithPath: "Resources/social-preview.png"))
 
 let iconutil = Process()
 iconutil.executableURL = URL(fileURLWithPath: "/usr/bin/iconutil")
@@ -80,4 +128,4 @@ iconutil.arguments = ["-c", "icns", iconset.path, "-o", "Resources/AppIcon.icns"
 try iconutil.run()
 iconutil.waitUntilExit()
 try? fm.removeItem(at: iconset)
-print(iconutil.terminationStatus == 0 ? "Wrote Resources/AppIcon.icns" : "iconutil failed")
+print(iconutil.terminationStatus == 0 ? "Wrote Resources/AppIcon.icns and Resources/social-preview.png" : "iconutil failed")
