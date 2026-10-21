@@ -55,8 +55,12 @@ To work on it in Xcode: `open Package.swift`, pick the **Perch** scheme and pres
 
 - The app has no Dock icon. Look for the little bird in the menu bar (Settings, Quit) and the island at the notch.
 - If macOS asks for access to your **Desktop** or **Documents** folder, allow it: that's where screenshots are saved.
-- The app is signed locally ("ad-hoc"), so it runs on the Mac that built it. To share it with others you'd need
-  an Apple Developer account to sign and notarize it.
+- **Building from source works on any Mac** (macOS 13+ with Swift 5.9+): clone, run `./scripts/build-app.sh`, done.
+- **Sharing the built `Perch.app`:** it's signed locally ("ad-hoc"), so on another Mac, macOS blocks it at first.
+  Open it once via System Settings → Privacy & Security → **Open Anyway**, or run
+  `xattr -dr com.apple.quarantine /Applications/Perch.app`. Opening without that step for everyone needs an
+  Apple Developer account to sign and notarize it. A build from an Intel Mac runs on Apple silicon through
+  Rosetta (build on the Apple silicon Mac itself for a native app).
 
 ## Uninstall
 
