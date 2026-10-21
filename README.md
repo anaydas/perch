@@ -53,10 +53,69 @@ To work on it in Xcode: `open Package.swift`, pick the **Perch** scheme and pres
 
 ### First launch
 
-- The app has no Dock icon. Look for the tray icon in the menu bar (Settings, Quit) and the island at the notch.
+- The app has no Dock icon. Look for the little bird in the menu bar (Settings, Quit) and the island at the notch.
 - If macOS asks for access to your **Desktop** or **Documents** folder, allow it: that's where screenshots are saved.
 - The app is signed locally ("ad-hoc"), so it runs on the Mac that built it. To share it with others you'd need
   an Apple Developer account to sign and notarize it.
+
+## Uninstall
+
+```bash
+cd ~/Documents/Workspace/perch
+./scripts/uninstall.sh
+```
+
+It lists what it will remove and asks before doing anything. It turns off Launch at login, quits Perch, deletes the app,
+your shelf items and settings, the Claude Code status line Perch added (only if it's Perch's; your previous
+`settings.json` is saved next to it), and resets Perch's privacy permissions. Your source code is left alone.
+
+- `--keep-data` keeps your shelf items and settings, for a reinstall later.
+- `--yes` skips the question.
+
+<details>
+<summary>Uninstall by hand</summary>
+
+1. **Turn off Launch at login** if you enabled it: Perch Settings → General, or System Settings → General → Login Items.
+2. **Quit Perch**: menu bar bird → Quit Perch, or:
+
+   ```bash
+   pkill -x Perch
+   ```
+
+3. **Delete the app** (and your local build, if you built it):
+
+   ```bash
+   rm -rf /Applications/Perch.app ~/Documents/Workspace/perch/build
+   ```
+
+4. **Delete your shelf items and settings.** This removes everything on the shelf for good:
+
+   ```bash
+   rm -rf ~/Library/Application\ Support/Perch
+   defaults delete com.anaydas.Perch
+   ```
+
+   If you used it back when it was called Notch Shelf, also run `defaults delete com.anaydas.NotchShelf`.
+
+5. **Remove the Claude Code status line** (only if you set up Claude usage). Open `~/.claude/settings.json`, delete the
+   `"statusLine": { ... }` entry (and the comma before it), then remove the script folder:
+
+   ```bash
+   rm -rf ~/.claude/perch
+   ```
+
+   That folder also holds `settings.backup.json`, a copy of your Claude settings from before the status line was added.
+   Look at it first if you want to compare, but don't restore it over newer settings.
+
+6. **Remove its privacy permissions** (Documents/Desktop folder access, Terminal/iTerm2 control):
+
+   ```bash
+   tccutil reset All com.anaydas.Perch
+   ```
+
+   Or remove Perch by hand in System Settings → Privacy & Security → Files and Folders and → Automation.
+
+</details>
 
 ## Project layout
 
@@ -64,11 +123,15 @@ To work on it in Xcode: `open Package.swift`, pick the **Perch** scheme and pres
 Sources/Perch/
   App/          entry point, app delegate, menu bar icon
   Models/       ShelfItem, AppSettings
-  Services/     ShelfStore (items + files), clipboard & screenshot watchers, hot keys, secret detector
-  Island/       panel over the notch, hover logic, island shape, SwiftUI views
+  Services/     ShelfStore (items + files), clipboard & screenshot watchers, Claude session & usage watchers,
+                hot keys, secret detector
+  Island/       panel, layout for each position/style, hover and drag logic, island shape, SwiftUI views
   Settings/     settings window
-Resources/Info.plist
-scripts/build-app.sh
+Resources/Info.plist, AppIcon.icns, AppIcon-1024.png
+scripts/build-app.sh       build build/Perch.app
+scripts/uninstall.sh       remove Perch from this Mac
+scripts/make-icon.swift    draw the app icon (Resources/AppIcon.icns)
+scripts/claude-statusline.sh  Claude Code status line that saves plan usage for Perch
 ```
 
 Data lives in `~/Library/Application Support/Perch/` (`items.json` plus stored images).
