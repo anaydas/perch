@@ -28,6 +28,8 @@ struct ShelfItem: Identifiable, Codable, Equatable {
     /// Original location of a pinned file (files are referenced, not copied).
     var fileURL: URL?
     var pixelWidth: Int?
+    /// SHA-256 of a stored image's bytes, to spot the same image added twice.
+    var contentHash: String?
     var pixelHeight: Int?
 }
 

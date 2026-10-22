@@ -40,9 +40,7 @@ struct ExpandedShelfView: View {
             }
 
             Group {
-                if model.isDropTargeted {
-                    DropZoneView()
-                } else if showingClaude {
+                if showingClaude {
                     if claudeSessions.sessions.isEmpty {
                         EmptyClaudeView(sessionsEnabled: settings.showClaudeSessions)
                     } else {
@@ -55,6 +53,14 @@ struct ExpandedShelfView: View {
                 }
             }
             .frame(maxHeight: vertical ? .infinity : nil)
+            // Something from another app is being dragged over: show the drop area on top of the
+            // cards (never in place of them, and never for a card dragged out of this shelf).
+            .overlay {
+                if model.isDropTargeted && !store.isDraggingOut {
+                    DropZoneView()
+                        .background(RoundedRectangle(cornerRadius: 16).fill(Color.black.opacity(0.85)))
+                }
+            }
 
             footer
         }

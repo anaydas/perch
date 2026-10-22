@@ -1,5 +1,6 @@
 import AppKit
 import Combine
+import CryptoKit
 import ImageIO
 import UniformTypeIdentifiers
 
@@ -29,6 +30,12 @@ final class ShelfStore: ObservableObject {
     private var saveWork: DispatchWorkItem?
     private var expiryTimer: Timer?
     private let thumbnails = NSCache<NSString, NSImage>()
+    /// Image encoding, hashing and file writes, kept off the main thread so drags stay smooth.
+    private let ioQueue = DispatchQueue(label: "Perch.ShelfStore.io", qos: .userInitiated)
+
+    /// A card is being dragged out of the shelf. While it is, the shelf doesn't show its
+    /// drop area (that would replace the card being dragged mid-drag).
+    @Published var isDraggingOut = false
 
     /// Size and icon of referenced files, read off the main thread.
     struct FileInfo {
@@ -53,6 +60,7 @@ final class ShelfStore: ObservableObject {
         filesDirectory = directory.appendingPathComponent("files", isDirectory: true)
         try? FileManager.default.createDirectory(at: filesDirectory, withIntermediateDirectories: true)
         load()
+        backfillImageHashes()
         purgeExpired()
         expiryTimer = Timer.scheduledTimer(withTimeInterval: 600, repeats: true) { [weak self] _ in
             self?.purgeExpired()
@@ -61,16 +69,16 @@ final class ShelfStore: ObservableObject {
 
     // MARK: - Adding
 
-    func addText(_ text: String, recent: Bool = false) {
+    /// `moveToFront`: an item that's already on the shelf moves to the front (copying it again).
+    /// Drops pass `false`, so dragging a card out and back in changes nothing.
+    func addText(_ text: String, recent: Bool = false, moveToFront: Bool = true) {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 
-        // Same text already here: move it to the front (and promote it if pinned on purpose).
+        // Same text already here: never add it twice.
         if let index = items.firstIndex(where: { $0.kind == .text && $0.text == text }) {
-            var existing = items.remove(at: index)
-            existing.createdAt = Date()
-            if !recent { existing.isRecent = false }
-            items.insert(existing, at: 0)
+            if !recent { items[index].isRecent = false }
+            if moveToFront { items[index].createdAt = Date() }
             scheduleSave()
             return
         }
@@ -82,27 +90,30 @@ final class ShelfStore: ObservableObject {
         insert(item)
     }
 
-    func addImage(_ image: NSImage, title: String, recent: Bool = false) {
-        guard let data = image.pngData() else { return }
-        storeImage(data: data, ext: "png", title: title, recent: recent)
+    func addImage(_ image: NSImage, title: String, recent: Bool = false, moveToFront: Bool = true) {
+        // PNG encoding a large image is slow: do it off the main thread.
+        ioQueue.async { [weak self] in
+            guard let data = image.pngData() else { return }
+            self?.storeImage(data: data, ext: "png", title: title, recent: recent, moveToFront: moveToFront)
+        }
     }
 
-    func addImage(from url: URL, recent: Bool = false) {
+    func addImage(from url: URL, recent: Bool = false, moveToFront: Bool = true) {
         let ext = url.pathExtension.isEmpty ? "png" : url.pathExtension.lowercased()
         let title = url.deletingPathExtension().lastPathComponent
         // Read off the main thread: a privacy prompt for Desktop/Downloads would otherwise freeze the UI.
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let data = try? Data(contentsOf: url) else { return }
             DispatchQueue.main.async {
-                self?.storeImage(data: data, ext: ext, title: title, recent: recent)
+                self?.storeImage(data: data, ext: ext, title: title, recent: recent, moveToFront: moveToFront)
             }
         }
     }
 
-    func addFile(_ url: URL, recent: Bool = false) {
-        // Same file again: bring it to the front.
-        if let index = items.firstIndex(where: { $0.kind == .file && $0.fileURL == url }) {
-            items[index].createdAt = Date()
+    func addFile(_ url: URL, recent: Bool = false, moveToFront: Bool = true) {
+        // Same file again: never add it twice.
+        if let index = items.firstIndex(where: { $0.kind == .file && $0.fileURL?.standardizedFileURL == url.standardizedFileURL }) {
+            if moveToFront { items[index].createdAt = Date() }
             if !recent { items[index].isRecent = false }
             scheduleSave()
             return
@@ -114,12 +125,26 @@ final class ShelfStore: ObservableObject {
     }
 
     /// Images are copied into the shelf; any other file is referenced in place.
-    func add(url: URL, recent: Bool = false) {
-        if Self.isImageFile(url) {
-            addImage(from: url, recent: recent)
-        } else {
-            addFile(url, recent: recent)
+    func add(url: URL, recent: Bool = false, moveToFront: Bool = true) {
+        // One of the shelf's own stored images (a card dragged out and dropped back): already here.
+        if isStoredFile(url) {
+            if moveToFront, let index = items.firstIndex(where: { imageURL(for: $0)?.standardizedFileURL == url.standardizedFileURL }) {
+                items[index].createdAt = Date()
+                scheduleSave()
+            }
+            return
         }
+        if Self.isImageFile(url) {
+            addImage(from: url, recent: recent, moveToFront: moveToFront)
+        } else {
+            addFile(url, recent: recent, moveToFront: moveToFront)
+        }
+    }
+
+    private func isStoredFile(_ url: URL) -> Bool {
+        let path = url.standardizedFileURL.resolvingSymlinksInPath().path
+        let stored = filesDirectory.standardizedFileURL.resolvingSymlinksInPath().path
+        return path.hasPrefix(stored + "/")
     }
 
     /// ⌥⌘V: pin whatever is currently on the clipboard.
@@ -149,19 +174,27 @@ final class ShelfStore: ObservableObject {
                         url = direct
                     }
                     guard let url else { return }
-                    DispatchQueue.main.async { self?.add(url: url) }
+                    DispatchQueue.main.async { self?.add(url: url, moveToFront: false) }
+                }
+            } else if let type = provider.registeredTypeIdentifiers.compactMap(UTType.init).first(where: { $0.conforms(to: .image) }) {
+                // Keep the image's own bytes (PNG, JPEG, HEIC…) instead of decoding and re-encoding it.
+                handled = true
+                provider.loadDataRepresentation(forTypeIdentifier: type.identifier) { [weak self] data, _ in
+                    guard let data else { return }
+                    self?.storeImage(data: data, ext: type.preferredFilenameExtension ?? "png",
+                                     title: "Dropped image", recent: false, moveToFront: false)
                 }
             } else if provider.canLoadObject(ofClass: NSImage.self) {
                 handled = true
                 _ = provider.loadObject(ofClass: NSImage.self) { [weak self] object, _ in
                     guard let image = object as? NSImage else { return }
-                    DispatchQueue.main.async { self?.addImage(image, title: "Dropped image") }
+                    self?.addImage(image, title: "Dropped image", moveToFront: false)
                 }
             } else if provider.canLoadObject(ofClass: NSString.self) {
                 handled = true
                 _ = provider.loadObject(ofClass: NSString.self) { [weak self] object, _ in
                     guard let string = object as? NSString else { return }
-                    DispatchQueue.main.async { self?.addText(string as String) }
+                    DispatchQueue.main.async { self?.addText(string as String, moveToFront: false) }
                 }
             }
         }
@@ -188,6 +221,7 @@ final class ShelfStore: ObservableObject {
 
     /// What gets handed to other apps when a card is dragged out.
     func itemProvider(for item: ShelfItem) -> NSItemProvider {
+        isDraggingOut = true // cleared by the island controller once the mouse is released
         switch item.kind {
         case .text:
             return NSItemProvider(object: (item.text ?? "") as NSString)
@@ -326,29 +360,53 @@ final class ShelfStore: ObservableObject {
         overflow.forEach(deleteFiles(of:))
     }
 
-    private func storeImage(data: Data, ext: String, title: String, recent: Bool) {
-        // Each image gets its own folder so a dragged-out file keeps a readable name.
-        let id = UUID()
-        let folder = id.uuidString
-        let fileName = Self.safeFileName(title) + "." + ext
-        let relative = folder + "/" + fileName
-        let destination = filesDirectory.appendingPathComponent(relative)
-        do {
-            try FileManager.default.createDirectory(at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
-            try data.write(to: destination)
-        } catch {
-            NSLog("Perch: could not store image: \(error)")
-            return
+    /// Hashing, writing and reading image properties happen on `ioQueue`; only the duplicate
+    /// check and the insert touch `items` (main thread). Safe to call from any thread.
+    private func storeImage(data: Data, ext: String, title: String, recent: Bool, moveToFront: Bool = true) {
+        let filesDirectory = filesDirectory
+        ioQueue.async { [weak self] in
+            let hash = Self.hash(data)
+            DispatchQueue.main.async {
+                guard let self else { return }
+                // Same image already on the shelf (same bytes): never store it twice.
+                if let index = self.items.firstIndex(where: { $0.kind == .image && $0.contentHash == hash }) {
+                    if moveToFront { self.items[index].createdAt = Date() }
+                    if !recent { self.items[index].isRecent = false }
+                    self.scheduleSave()
+                    return
+                }
+                self.ioQueue.async {
+                    // Each image gets its own folder so a dragged-out file keeps a readable name.
+                    let id = UUID()
+                    let relative = id.uuidString + "/" + Self.safeFileName(title) + "." + ext
+                    let destination = filesDirectory.appendingPathComponent(relative)
+                    do {
+                        try FileManager.default.createDirectory(at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
+                        try data.write(to: destination)
+                    } catch {
+                        NSLog("Perch: could not store image: \(error)")
+                        return
+                    }
+                    var item = ShelfItem(id: id, kind: .image, title: title)
+                    item.storedPath = relative
+                    item.contentHash = hash
+                    item.isRecent = recent
+                    if let source = CGImageSourceCreateWithData(data as CFData, nil),
+                       let props = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any] {
+                        item.pixelWidth = props[kCGImagePropertyPixelWidth] as? Int
+                        item.pixelHeight = props[kCGImagePropertyPixelHeight] as? Int
+                    }
+                    DispatchQueue.main.async {
+                        // The same image may have landed while this one was being written.
+                        if self.items.contains(where: { $0.kind == .image && $0.contentHash == hash }) {
+                            try? FileManager.default.removeItem(at: destination.deletingLastPathComponent())
+                            return
+                        }
+                        self.insert(item)
+                    }
+                }
+            }
         }
-        var item = ShelfItem(id: id, kind: .image, title: title)
-        item.storedPath = relative
-        item.isRecent = recent
-        if let source = CGImageSourceCreateWithData(data as CFData, nil),
-           let props = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any] {
-            item.pixelWidth = props[kCGImagePropertyPixelWidth] as? Int
-            item.pixelHeight = props[kCGImagePropertyPixelHeight] as? Int
-        }
-        insert(item)
     }
 
     private func deleteFiles(of item: ShelfItem) {
@@ -390,6 +448,27 @@ final class ShelfStore: ObservableObject {
             .trimmingCharacters(in: .whitespacesAndNewlines)
         let short = String(cleaned.prefix(60))
         return short.isEmpty ? "Image" : short
+    }
+
+    private static func hash(_ data: Data) -> String {
+        SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+    }
+
+    /// Images stored before duplicate checks existed have no hash yet; work them out once.
+    private func backfillImageHashes() {
+        let missing = items.filter { $0.kind == .image && $0.contentHash == nil }
+            .compactMap { item in imageURL(for: item).map { (item.id, $0) } }
+        guard !missing.isEmpty else { return }
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            let hashes = missing.compactMap { id, url in (try? Data(contentsOf: url)).map { (id, Self.hash($0)) } }
+            DispatchQueue.main.async {
+                guard let self else { return }
+                for (id, hash) in hashes {
+                    if let index = self.items.firstIndex(where: { $0.id == id }) { self.items[index].contentHash = hash }
+                }
+                self.scheduleSave()
+            }
+        }
     }
 
     static func isImageFile(_ url: URL) -> Bool {

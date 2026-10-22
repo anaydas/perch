@@ -170,6 +170,9 @@ final class IslandController {
     private func trackCursor() {
         // Mid-press on the island (clicking or dragging it): keep taking mouse events and
         // leave it as it is, even if the cursor is briefly outside its old frame.
+        if store.isDraggingOut && NSEvent.pressedMouseButtons == 0 {
+            store.isDraggingOut = false
+        }
         if pressStartedOnIsland {
             if NSEvent.pressedMouseButtons == 0 { pressStartedOnIsland = false } else {
                 if panel.ignoresMouseEvents { panel.ignoresMouseEvents = false }
