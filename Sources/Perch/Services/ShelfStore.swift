@@ -1,6 +1,8 @@
+import AVFoundation
 import AppKit
 import Combine
 import CryptoKit
+import QuickLookThumbnailing
 import ImageIO
 import UniformTypeIdentifiers
 
@@ -41,6 +43,10 @@ final class ShelfStore: ObservableObject {
     struct FileInfo {
         var size: Int64?
         var icon: NSImage?
+        /// Finder-style preview of the content (video frame, PDF page…), when there is one.
+        var thumbnail: NSImage?
+        /// Length of a video, in seconds.
+        var duration: Double?
     }
     @Published private(set) var fileInfo: [UUID: FileInfo] = [:]
     private var fileInfoRequested = Set<UUID>()
@@ -280,9 +286,35 @@ final class ShelfStore: ObservableObject {
                 info.size = (attributes[.size] as? NSNumber)?.int64Value
                 info.icon = NSWorkspace.shared.icon(forFile: url.path)
             }
-            DispatchQueue.main.async { self?.fileInfo[id] = info }
+            let exists = info.size != nil
+            DispatchQueue.main.async {
+                self?.fileInfo[id] = info
+                if exists { self?.loadPreview(for: id, url: url) }
+            }
         }
         return nil
+    }
+
+    /// Fills in the content preview (and a video's length) once they're ready.
+    private func loadPreview(for id: UUID, url: URL) {
+        let scale = NSScreen.main?.backingScaleFactor ?? 2
+        let request = QLThumbnailGenerator.Request(fileAt: url, size: CGSize(width: 240, height: 160),
+                                                   scale: scale, representationTypes: .thumbnail)
+        QLThumbnailGenerator.shared.generateBestRepresentation(for: request) { [weak self] representation, _ in
+            guard let image = representation?.nsImage else { return }
+            DispatchQueue.main.async { self?.fileInfo[id]?.thumbnail = image }
+        }
+        if Self.isVideoFile(url) {
+            let setDuration: (Double) -> Void = { [weak self] seconds in
+                DispatchQueue.main.async { self?.fileInfo[id]?.duration = seconds }
+            }
+            Task {
+                guard let duration = try? await AVURLAsset(url: url).load(.duration) else { return }
+                let seconds = CMTimeGetSeconds(duration)
+                guard seconds.isFinite, seconds > 0 else { return }
+                setDuration(seconds)
+            }
+        }
     }
 
     // MARK: - Managing
@@ -469,6 +501,10 @@ final class ShelfStore: ObservableObject {
                 self.scheduleSave()
             }
         }
+    }
+
+    static func isVideoFile(_ url: URL) -> Bool {
+        UTType(filenameExtension: url.pathExtension)?.conforms(to: .movie) ?? false
     }
 
     static func isImageFile(_ url: URL) -> Bool {

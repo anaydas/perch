@@ -142,6 +142,8 @@ private struct MiniThumb: View {
         Group {
             if item.kind == .image, let thumb = store.thumbnail(for: item) {
                 Image(nsImage: thumb).resizable().aspectRatio(contentMode: .fill)
+            } else if item.kind == .file, let thumb = store.info(for: item)?.thumbnail {
+                Image(nsImage: thumb).resizable().aspectRatio(contentMode: .fill)
             } else {
                 Rectangle().fill(item.kind == .file ? Color.orange : Color.gray)
             }

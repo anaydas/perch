@@ -35,7 +35,7 @@ switching windows.
 - **Fix a card's position.** Hover a card and click the pin, or right-click and choose Fix at the Front. Fixed cards stay at the front and never expire.
 - **Optional filter tabs.** By default the shelf shows everything. Turn on Settings → Shelf → Show filter tabs to get All, Images, Text, Files and Recent (a dropdown in the side panel).
 - **Copy with one click.** Every card has a Copy button; double-click opens images and files.
-- **Auto-catch screenshots.** New screenshots (⌘⇧3 / ⌘⇧4 / ⌘⇧5) land on the shelf automatically. Perch watches the folder screenshots are saved to (Screenshot app → Options → Save to), so allow access when macOS asks for that folder.
+- **Auto-catch screenshots and screen recordings.** New screenshots (⌘⇧3 / ⌘⇧4 / ⌘⇧5) and screen recordings (⌘⇧5) land on the shelf automatically. Recordings are referenced in place (not copied) and show a video frame, a ▶ badge and their length. File cards show a real preview of the file (video frame, PDF page…). Perch watches the folder screenshots are saved to (Screenshot app → Options → Save to), so allow access when macOS asks for that folder.
 - **Clipboard history.** Everything you copy shows up on the shelf and in the **Recent** tab (last 30), and counts toward the badge. Copies expire like other items; star them to keep them.
 - **Secret blur.** Text that looks like an API key, token, private key or card number is blurred until you click it.
   Copies from password managers are never recorded.

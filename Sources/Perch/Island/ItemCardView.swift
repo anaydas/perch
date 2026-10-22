@@ -87,7 +87,10 @@ struct ItemCardView: View {
             ZStack {
                 Color.primary.opacity(0.1)
                 if let info = store.info(for: item) {
-                    if let icon = info.icon {
+                    if let thumbnail = info.thumbnail {
+                        // Real preview: a video frame, a PDF's first page, …
+                        Image(nsImage: thumbnail).resizable().aspectRatio(contentMode: .fill)
+                    } else if let icon = info.icon {
                         Image(nsImage: icon)
                             .resizable()
                             .frame(width: 36, height: 36)
@@ -96,6 +99,13 @@ struct ItemCardView: View {
                     }
                 } else {
                     ProgressView().controlSize(.small)
+                }
+                if isVideo {
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 26, height: 26)
+                        .background(Circle().fill(Color.black.opacity(0.55)))
                 }
             }
         }
@@ -179,8 +189,19 @@ struct ItemCardView: View {
         case .file:
             guard let info = store.info(for: item) else { return "File" }
             guard let size = info.size else { return "File missing" }
-            return ByteCountFormatter.string(fromByteCount: size, countStyle: .file)
+            let sizeText = ByteCountFormatter.string(fromByteCount: size, countStyle: .file)
+            if let duration = info.duration { return "\(Self.durationText(duration)) · \(sizeText)" }
+            return sizeText
         }
+    }
+
+    private var isVideo: Bool { item.fileURL.map(ShelfStore.isVideoFile) ?? false }
+
+    /// "0:42", "12:05", "1:02:03".
+    private static func durationText(_ seconds: Double) -> String {
+        let total = Int(seconds.rounded())
+        let h = total / 3600, m = (total % 3600) / 60, s = total % 60
+        return h > 0 ? String(format: "%d:%02d:%02d", h, m, s) : String(format: "%d:%02d", m, s)
     }
 
     private func copy() {

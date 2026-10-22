@@ -80,6 +80,7 @@ struct SettingsView: View {
 
             Section("Capture") {
                 Toggle("Catch new screenshots automatically", isOn: $settings.autoCatchScreenshots)
+                Toggle("Catch new screen recordings automatically", isOn: $settings.autoCatchRecordings)
                 Toggle("Keep clipboard history in the Recent tab", isOn: $settings.clipboardHistory)
                 Toggle("Blur text that looks like a password or API key", isOn: $settings.hideSensitive)
             }

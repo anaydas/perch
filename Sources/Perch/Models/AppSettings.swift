@@ -78,6 +78,7 @@ final class AppSettings: ObservableObject {
     @Published var outline: IslandOutline { didSet { defaults.set(outline.rawValue, forKey: Keys.outline) } }
     @Published var tint: OutlineTint { didSet { defaults.set(tint.rawValue, forKey: Keys.tint) } }
     @Published var autoCatchScreenshots: Bool { didSet { defaults.set(autoCatchScreenshots, forKey: Keys.screenshots) } }
+    @Published var autoCatchRecordings: Bool { didSet { defaults.set(autoCatchRecordings, forKey: Keys.recordings) } }
     @Published var clipboardHistory: Bool { didSet { defaults.set(clipboardHistory, forKey: Keys.clipboard) } }
     /// Sound when something lands on the shelf. Off by default.
     @Published var soundOnItemAdded: Bool { didSet { defaults.set(soundOnItemAdded, forKey: Keys.soundItem) } }
@@ -101,6 +102,7 @@ final class AppSettings: ObservableObject {
         static let outline = "outline"
         static let tint = "tint"
         static let screenshots = "autoCatchScreenshots"
+        static let recordings = "autoCatchRecordings"
         static let clipboard = "clipboardHistory"
         static let sensitive = "hideSensitive"
         static let soundItem = "soundOnItemAdded"
@@ -129,6 +131,7 @@ final class AppSettings: ObservableObject {
         outline = IslandOutline(rawValue: d.string(forKey: Keys.outline) ?? "") ?? .glow
         tint = OutlineTint(rawValue: d.string(forKey: Keys.tint) ?? "") ?? .blue
         autoCatchScreenshots = d.object(forKey: Keys.screenshots) as? Bool ?? true
+        autoCatchRecordings = d.object(forKey: Keys.recordings) as? Bool ?? true
         clipboardHistory = d.object(forKey: Keys.clipboard) as? Bool ?? true
         hideSensitive = d.object(forKey: Keys.sensitive) as? Bool ?? true
         soundOnItemAdded = d.object(forKey: Keys.soundItem) as? Bool ?? false

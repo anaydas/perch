@@ -1,7 +1,7 @@
 import AppKit
 import Darwin
 
-/// Watches the folder macOS saves screenshots to and pins new ones.
+/// Watches the folder macOS saves screenshots (and ⌘⇧5 screen recordings) to and pins new ones.
 ///
 /// It watches the folder directly rather than asking Spotlight: Spotlight silently leaves
 /// out files in protected folders (Desktop, Documents) unless the app already has access,
@@ -99,8 +99,15 @@ final class ScreenshotWatcher {
         }
         guard !found.isEmpty else { return }
         DispatchQueue.main.async { [weak self] in
-            guard let self, self.settings.autoCatchScreenshots else { return }
-            found.forEach { self.store.addImage(from: $0) }
+            guard let self else { return }
+            for url in found {
+                if ShelfStore.isVideoFile(url) {
+                    // Recordings can be huge: reference them in place, like other files.
+                    if self.settings.autoCatchRecordings { self.store.addFile(url) }
+                } else if self.settings.autoCatchScreenshots {
+                    self.store.addImage(from: url)
+                }
+            }
         }
     }
 
@@ -108,8 +115,10 @@ final class ScreenshotWatcher {
     private static func isScreenshot(_ url: URL) -> Bool {
         let size = getxattr(url.path, "com.apple.metadata:kMDItemIsScreenCapture", nil, 0, 0, 0)
         if size > 0 { return true }
-        // Fallback for copies that lost the attribute: an image whose name starts like a screenshot.
+        // Fallback for copies that lost the attribute: a name that starts like a screenshot or recording.
         let name = url.lastPathComponent.lowercased()
-        return ShelfStore.isImageFile(url) && (name.hasPrefix("screenshot") || name.hasPrefix("screen shot"))
+        if ShelfStore.isImageFile(url) { return name.hasPrefix("screenshot") || name.hasPrefix("screen shot") }
+        if ShelfStore.isVideoFile(url) { return name.hasPrefix("screen recording") }
+        return false
     }
 }
