@@ -45,6 +45,9 @@ final class ClaudeSessionWatcher: ObservableObject {
         directory = configDir.appendingPathComponent("sessions", isDirectory: true)
     }
 
+    /// Sample sessions for the README screenshots (the watcher isn't started then).
+    func showSample(_ sessions: [ClaudeSession]) { self.sessions = sessions }
+
     func start() {
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in self?.poll() }
         poll()

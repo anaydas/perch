@@ -66,9 +66,12 @@ private struct HorizontalPillContent: View {
                     Text("\(items.count)")
                         .font(.system(size: 11, weight: .semibold))
                         .monospacedDigit()
+                        .lineLimit(1)
+                        .fixedSize()
                     Circle().fill(Color.accentColor).frame(width: 5, height: 5)
                 }
             }
+            .fixedSize()
             .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .padding(.horizontal, 12)
@@ -94,6 +97,8 @@ private struct VerticalPillContent: View {
                 Text("\(items.count)")
                     .font(.system(size: 11, weight: .semibold))
                     .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
             }
             ClaudeIndicator(sessions: sessions)
         }

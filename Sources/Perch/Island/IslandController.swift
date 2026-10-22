@@ -104,6 +104,12 @@ final class IslandController {
         claudeSessions.needsAttention
             .sink { [weak self] _ in self?.itemWasAdded() }
             .store(in: &cancellables)
+
+        // The collapsed pill grows and shrinks with what it shows (previews, Claude logo, count).
+        store.$items.combineLatest(claudeSessions.$sessions)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] items, sessions in self?.fitPill(itemCount: items.count, sessions: sessions) }
+            .store(in: &cancellables)
     }
 
     // MARK: - Public
@@ -122,8 +128,10 @@ final class IslandController {
         guard let target = preferred ?? NSScreen.screens.first else { return }
         screen = target
 
-        model.layout = IslandLayout.make(screen: target, position: settings.position, style: settings.style,
-                                         floatingFraction: settings.floatingCenter)
+        var layout = IslandLayout.make(screen: target, position: settings.position, style: settings.style,
+                                       floatingFraction: settings.floatingCenter)
+        layout.collapsedExtraWidth = pillExtraWidth
+        model.layout = layout
         panel.setFrame(model.layout.panelFrame(on: target), display: true)
     }
 
@@ -135,6 +143,18 @@ final class IslandController {
         let center = layout.clamped(moved, size: layout.collapsedSize)
         model.layout.floatingCenter = center // no jump while settings round-trips
         settings.floatingCenter = layout.fraction(of: center)
+    }
+
+    private var pillExtraWidth = IslandMetrics.collapsedExtraWidth
+
+    private func fitPill(itemCount: Int, sessions: [ClaudeSession]) {
+        let width = IslandLayout.pillContentWidth(itemCount: itemCount, sessions: sessions,
+                                                  notchGap: model.layout.notchGap)
+        guard width != pillExtraWidth else { return }
+        pillExtraWidth = width
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+            model.layout.collapsedExtraWidth = width
+        }
     }
 
     private func cursorIsOverIsland() -> Bool {

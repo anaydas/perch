@@ -52,7 +52,7 @@ enum OutlineTint: String, CaseIterable, Identifiable {
 
 /// User preferences, persisted in UserDefaults.
 final class AppSettings: ObservableObject {
-    private let defaults = UserDefaults.standard
+    private let defaults: UserDefaults
 
     @Published var position: IslandPosition { didSet { defaults.set(position.rawValue, forKey: Keys.position) } }
     @Published var style: IslandStyle { didSet { defaults.set(style.rawValue, forKey: Keys.style) } }
@@ -96,11 +96,13 @@ final class AppSettings: ObservableObject {
         static let expiry = "expiryHours"
     }
 
-    init() {
-        Self.migrateFromNotchShelf()
-        let d = UserDefaults.standard
+    /// `defaults` is only swapped out when rendering the README screenshots.
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        if defaults == .standard { Self.migrateFromNotchShelf() }
+        let d = defaults
         position = IslandPosition(rawValue: d.string(forKey: Keys.position) ?? "") ?? .top
-        style = IslandStyle(rawValue: d.string(forKey: Keys.style) ?? "") ?? .notch
+        style = IslandStyle(rawValue: d.string(forKey: Keys.style) ?? "") ?? .floating
         if let p = d.array(forKey: Keys.floatingCenter) as? [Double], p.count == 2 {
             floatingCenter = CGPoint(x: p[0], y: p[1])
         } else {

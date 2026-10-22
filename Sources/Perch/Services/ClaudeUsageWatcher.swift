@@ -44,6 +44,9 @@ final class ClaudeUsageWatcher: ObservableObject {
         appHistoryFile = home.appendingPathComponent("Library/Application Support/Claude/plan-usage-history.json")
     }
 
+    /// Sample usage for the README screenshots (the watcher isn't started then).
+    func showSample(_ usage: ClaudeUsage) { self.usage = usage }
+
     func start() {
         timer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in self?.poll() }
         poll()

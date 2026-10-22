@@ -6,6 +6,26 @@ A Dynamic Island–style shelf for the MacBook notch. Pin screenshots, text and 
 at the top of the screen so you can copy or drag them into any app without
 switching windows.
 
+## Screenshots
+
+<img src="docs/screenshots/shelf-collapsed.png" alt="The collapsed floating island below the menu bar, showing recent items, the Claude logo and the item count">
+
+**Hover or click to open the shelf.** Your latest screenshots, text and files as cards, newest first. Pinned cards stay at the front.
+
+<img src="docs/screenshots/shelf-open.png" alt="The open shelf with image, text, code and file cards">
+
+**Claude view.** Click the Claude logo for your running Claude Code sessions and plan usage. The ring around the logo shows 5-hour usage at a glance.
+
+<img src="docs/screenshots/claude-view.png" alt="The Claude view with three session cards and 5-hour and weekly usage meters">
+
+**Styles and placement.** Notch, Floating (the default) or Orb, on the top, left or right edge. Floating and Orb can be dragged anywhere.
+
+<img src="docs/screenshots/styles.png" alt="The three collapsed styles side by side: Notch, Floating and Orb">
+
+<img src="docs/screenshots/side-panel.png" width="320" alt="The shelf as a tall side panel on the left edge, with a two-column card grid">
+
+<sub>Screenshots are drawn from the app's own views with sample data: `build/Perch.app/Contents/MacOS/Perch --render-screenshots docs/screenshots`.</sub>
+
 ## Features
 
 - **Small island by default.** A compact pill around the notch shows your latest items and a count.
@@ -21,7 +41,7 @@ switching windows.
   Copies from password managers are never recorded.
 - **Claude Code sessions.** A small Claude mark on the island shows your running Claude Code sessions: it spins while one is working, pulses amber when one needs you, and is grey when they're idle. Open the island and click the Claude logo at the top right to switch the cards to your sessions, with full usage meters at the bottom (click it again to go back to the shelf). The ring around the logo fills with your 5-hour usage, so you can check it without switching. Clicking a desktop-app session opens it in the Claude app. Clicking a terminal session brings its terminal to the front and selects the exact tab in Terminal and iTerm2 (macOS asks once for permission). Right-click a terminal session to open a copy in the Claude app. Status comes from `~/.claude/sessions/`, an undocumented format that a Claude update could change. Turn off just this in Settings → Claude Code, or switch off Show Claude to hide everything Claude.
 - **Claude plan usage.** The Claude view shows your 5-hour and weekly limits in Claude orange: percent used, with a live countdown to each reset underneath its bar. The numbers come from a Claude Code status line script, `scripts/claude-statusline.sh`, installed to `~/.claude/perch/statusline.sh` and set as `statusLine` in `~/.claude/settings.json`. It updates whenever a Claude Code session gets a reply. When those numbers are missing or older, the row falls back to the Claude app's own usage history, which it only samples now and then; numbers older than an hour show greyed out with "as of". Turn off just this in Settings → Claude Code, or switch off Show Claude to hide everything Claude.
-- **Position and style.** In Settings → Placement, put the island on the top, left or right edge, and pick a style: Notch (joined to the edge), Floating (a capsule) or Orb (a circle with the item count). Both can be dragged anywhere on screen: drag the capsule or orb, or the open shelf by its header; it remembers where you put it, and Settings → Reset position moves it back. Left and right open a tall side panel with a 2-column card grid that scrolls down. Clicking the collapsed island opens it.
+- **Position and style.** In Settings → Placement, put the island on the top, left or right edge, and pick a style: Notch (joined to the edge), Floating (a capsule, the default) or Orb (a circle with the item count). Both can be dragged anywhere on screen: drag the capsule or orb, or the open shelf by its header; it remembers where you put it, and Settings → Reset position moves it back. Left and right open a tall side panel with a 2-column card grid that scrolls down. Clicking the collapsed island opens it.
 - **Looks.** Solid, Transparent or Glass background; None, Hairline, Accent, Glow, Double or Pulse outline in five colors.
   The island curves out into the top edge of the screen like the system notch.
 - **Cleanup.** Unstarred items expire after 1 day / 3 days / 1 week (or never). Star an item to keep it.

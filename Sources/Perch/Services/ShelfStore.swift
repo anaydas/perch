@@ -38,13 +38,15 @@ final class ShelfStore: ObservableObject {
     @Published private(set) var fileInfo: [UUID: FileInfo] = [:]
     private var fileInfoRequested = Set<UUID>()
 
-    init(settings: AppSettings) {
+    /// `directory` is only passed when rendering the README screenshots (sample data in a temp folder).
+    init(settings: AppSettings, directory customDirectory: URL? = nil) {
         self.settings = settings
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        directory = support.appendingPathComponent("Perch", isDirectory: true)
+        directory = customDirectory ?? support.appendingPathComponent("Perch", isDirectory: true)
         // The app used to be called Notch Shelf: bring its items along on first launch.
         let oldDirectory = support.appendingPathComponent("NotchShelf", isDirectory: true)
-        if !FileManager.default.fileExists(atPath: directory.path),
+        if customDirectory == nil,
+           !FileManager.default.fileExists(atPath: directory.path),
            FileManager.default.fileExists(atPath: oldDirectory.path) {
             try? FileManager.default.moveItem(at: oldDirectory, to: directory)
         }

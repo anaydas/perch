@@ -169,11 +169,11 @@ struct SessionCardView: View {
             HStack(spacing: 4) {
                 Text(session.statusLabel)
                     .foregroundStyle(session.status.color)
-                Text("·").foregroundStyle(.secondary)
+                Spacer(minLength: 2)
+                // App or terminal, as an icon (the words don't fit beside "Needs you").
                 Image(systemName: session.source == .terminal ? "terminal" : "macwindow")
                     .foregroundStyle(.secondary)
-                Text(session.source == .terminal ? "Terminal" : "App")
-                    .foregroundStyle(.secondary)
+                    .help(session.source == .terminal ? "Running in a terminal" : "Running in the Claude app")
             }
             .font(.system(size: 9.5))
             .lineLimit(1)

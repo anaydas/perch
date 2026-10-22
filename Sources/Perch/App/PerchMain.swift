@@ -11,6 +11,15 @@ enum PerchMain {
             exit(0)
         }
 
+        // Used to make the README screenshots: draws the island with sample data, then quits.
+        if let flag = CommandLine.arguments.firstIndex(of: "--render-screenshots") {
+            let args = CommandLine.arguments
+            let folder = args.indices.contains(flag + 1) ? args[flag + 1] : "docs/screenshots"
+            _ = NSApplication.shared
+            ReadmeScreenshots.render(to: URL(fileURLWithPath: folder))
+            exit(0)
+        }
+
         let app = NSApplication.shared
         let delegate = AppDelegate()
         app.delegate = delegate

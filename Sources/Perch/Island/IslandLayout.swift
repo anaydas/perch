@@ -13,6 +13,9 @@ struct IslandLayout: Equatable {
     var edgeInset: CGFloat = 0
     /// The screen's usable area (without menu bar and Dock), in screen coordinates.
     var visibleFrame: CGRect = .zero
+    /// Room the collapsed pill's content needs besides the notch gap; follows the content
+    /// (previews, Claude logo, item count), see `pillContentWidth`.
+    var collapsedExtraWidth: CGFloat = IslandMetrics.collapsedExtraWidth
     /// Movable styles only: centre of the collapsed island in panel coordinates
     /// (the panel covers `visibleFrame`; origin top left, y down).
     var floatingCenter: CGPoint = .zero
@@ -33,7 +36,7 @@ struct IslandLayout: Equatable {
         case .notch, .floating:
             if isVertical { return CGSize(width: 30, height: 112) }
             let thickness = position == .top && style == .notch ? topBarHeight : 28
-            return CGSize(width: notchGap + IslandMetrics.collapsedExtraWidth, height: thickness)
+            return CGSize(width: notchGap + collapsedExtraWidth, height: thickness)
         }
     }
 
@@ -181,4 +184,24 @@ struct IslandLayout: Equatable {
     }
 
     var hoverMargin: CGFloat { 6 }
+
+    /// Width the horizontal pill needs (besides the notch gap) to fit its content without
+    /// squeezing: previews on the left; Claude logo, count and dot on the right.
+    static func pillContentWidth(itemCount: Int, sessions: [ClaudeSession], notchGap: CGFloat) -> CGFloat {
+        let previews = min(itemCount, 3)
+        let left: CGFloat = previews == 0 ? 14 : 16 + CGFloat(previews - 1) * 10
+        var right: CGFloat = 0
+        if !sessions.isEmpty {
+            right += 11
+            if sessions.filter({ $0.status == .waiting }).count > 1 { right += 12 }
+        }
+        if itemCount > 0 {
+            if right > 0 { right += 5 }
+            right += CGFloat(String(itemCount).count) * 7.5 + 5 + 5 // digits, spacing, dot
+        }
+        let padding: CGFloat = 24, gap: CGFloat = 12
+        // With a notch the two sides sit either side of it, so each side gets the wider one's room.
+        let content = notchGap > 0 ? 2 * max(left, right) : left + gap + right
+        return max(64, (padding + content).rounded(.up))
+    }
 }
