@@ -5,7 +5,7 @@ import SwiftUI
 /// filled with sample data (a temporary shelf and settings, never the user's).
 @MainActor
 enum ReadmeScreenshots {
-    static func render(to folder: URL) {
+    static func render(to folder: URL, theme: IslandTheme = .dark) {
         let suite = "com.anaydas.Perch.readme-screenshots"
         let defaults = UserDefaults(suiteName: suite)!
         defaults.removePersistentDomain(forName: suite)
@@ -17,6 +17,7 @@ enum ReadmeScreenshots {
 
         let settings = AppSettings(defaults: defaults)
         settings.background = .solid // materials need a live window; solid renders the same everywhere
+        settings.theme = theme
         let store = ShelfStore(settings: settings, directory: temp.appendingPathComponent("data"))
         let sessions = ClaudeSessionWatcher(settings: settings)
         let usage = ClaudeUsageWatcher(settings: settings)

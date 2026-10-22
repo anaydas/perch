@@ -39,6 +39,7 @@ struct CollapsedIslandView: View {
 /// Recent items peeking out on the left, the count on the right, and an empty gap
 /// where the hardware notch is (if any).
 private struct HorizontalPillContent: View {
+    @Environment(\.islandAccent) private var accent
     let notchGap: CGFloat
     let items: [ShelfItem]
     @ObservedObject var store: ShelfStore
@@ -68,7 +69,7 @@ private struct HorizontalPillContent: View {
                         .monospacedDigit()
                         .lineLimit(1)
                         .fixedSize()
-                    Circle().fill(Color.accentColor).frame(width: 5, height: 5)
+                    Circle().fill(accent).frame(width: 5, height: 5)
                 }
             }
             .fixedSize()
@@ -147,6 +148,6 @@ private struct MiniThumb: View {
         }
         .frame(width: 16, height: 12)
         .clipShape(RoundedRectangle(cornerRadius: 3))
-        .overlay(RoundedRectangle(cornerRadius: 3).stroke(Color.black, lineWidth: 1.5))
+        .overlay(RoundedRectangle(cornerRadius: 3).stroke(Color.primary.opacity(0.5), lineWidth: 1))
     }
 }

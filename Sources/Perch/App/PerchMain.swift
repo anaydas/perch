@@ -16,7 +16,8 @@ enum PerchMain {
             let args = CommandLine.arguments
             let folder = args.indices.contains(flag + 1) ? args[flag + 1] : "docs/screenshots"
             _ = NSApplication.shared
-            ReadmeScreenshots.render(to: URL(fileURLWithPath: folder))
+            let theme = args.firstIndex(of: "--theme").flatMap { args.indices.contains($0 + 1) ? IslandTheme(rawValue: args[$0 + 1]) : nil }
+            ReadmeScreenshots.render(to: URL(fileURLWithPath: folder), theme: theme ?? .dark)
             exit(0)
         }
 

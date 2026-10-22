@@ -2,6 +2,7 @@ import AppKit
 import SwiftUI
 
 struct ItemCardView: View {
+    @Environment(\.islandAccent) private var accent
     let item: ShelfItem
     @ObservedObject var store: ShelfStore
     @ObservedObject var settings: AppSettings
@@ -32,15 +33,15 @@ struct ItemCardView: View {
                     .font(.system(size: 10, weight: .semibold))
                     .frame(maxWidth: .infinity, minHeight: 20)
                     .background(RoundedRectangle(cornerRadius: 6)
-                        .fill(copied ? Color.accentColor : Color.white.opacity(0.12)))
+                        .fill(copied ? accent : Color.primary.opacity(0.12)))
             }
             .buttonStyle(.plain)
         }
         .padding(6)
         .frame(width: IslandMetrics.cardWidth, height: IslandMetrics.cardHeight)
-        .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.08)))
+        .background(RoundedRectangle(cornerRadius: 10).fill(Color.primary.opacity(0.08)))
         .overlay(RoundedRectangle(cornerRadius: 10)
-            .strokeBorder(item.isFixed ? Color.accentColor.opacity(0.8) : Color.white.opacity(0.1)))
+            .strokeBorder(item.isFixed ? accent.opacity(0.8) : Color.primary.opacity(0.1)))
         .overlay(alignment: .topTrailing) { cornerControls.padding(3) }
         .contentShape(RoundedRectangle(cornerRadius: 10))
         .onHover { hovering = $0 }
@@ -63,11 +64,11 @@ struct ItemCardView: View {
         case .text:
             Text(item.text ?? "")
                 .font(looksLikeCode ? .system(size: 8.5, design: .monospaced) : .system(size: 9.5))
-                .foregroundStyle(looksLikeCode ? Color(red: 0.56, green: 0.89, blue: 0.63) : Color.white.opacity(0.9))
+                .foregroundStyle(looksLikeCode ? Color(red: 0.56, green: 0.89, blue: 0.63) : Color.primary.opacity(0.9))
                 .lineLimit(4)
                 .padding(5)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .background(looksLikeCode ? Color.black.opacity(0.45) : Color.white.opacity(0.1))
+                .background(looksLikeCode ? Color(white: 0.1) : Color.primary.opacity(0.1))
                 .blur(radius: isHidden ? 4 : 0)
                 .overlay {
                     if isHidden {
@@ -75,6 +76,7 @@ struct ItemCardView: View {
                             Label("Hidden", systemImage: "eye.slash")
                                 .font(.system(size: 9.5, weight: .semibold))
                                 .padding(.horizontal, 6).padding(.vertical, 3)
+                                .foregroundStyle(.white)
                                 .background(Capsule().fill(Color.black.opacity(0.6)))
                         }
                         .buttonStyle(.plain)
@@ -83,7 +85,7 @@ struct ItemCardView: View {
                 }
         case .file:
             ZStack {
-                Color.white.opacity(0.1)
+                Color.primary.opacity(0.1)
                 if let info = store.info(for: item) {
                     if let icon = info.icon {
                         Image(nsImage: icon)
@@ -104,7 +106,7 @@ struct ItemCardView: View {
             .font(.system(size: 18))
             .foregroundStyle(.secondary)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color.white.opacity(0.1))
+            .background(Color.primary.opacity(0.1))
     }
 
     private var cornerControls: some View {
@@ -114,6 +116,7 @@ struct ItemCardView: View {
                     .font(.system(size: 7.5, weight: .bold))
                     .foregroundStyle(.yellow)
                     .frame(width: 15, height: 15)
+                    .foregroundStyle(.white)
                     .background(Circle().fill(Color.black.opacity(0.6)))
             }
             // Fix button: always shown on fixed cards, on hover otherwise.
@@ -123,7 +126,8 @@ struct ItemCardView: View {
                         .font(.system(size: 7, weight: .bold))
                         .rotationEffect(.degrees(45))
                         .frame(width: 15, height: 15)
-                        .background(Circle().fill(item.isFixed ? Color.accentColor : Color.black.opacity(0.6)))
+                        .foregroundStyle(.white)
+                        .background(Circle().fill(item.isFixed ? accent : Color.black.opacity(0.6)))
                 }
                 .buttonStyle(.plain)
                 .help(item.isFixed ? "Unfix position" : "Fix at the front")
@@ -132,6 +136,7 @@ struct ItemCardView: View {
                 Image(systemName: "xmark")
                     .font(.system(size: 7, weight: .bold))
                     .frame(width: 15, height: 15)
+                    .foregroundStyle(.white)
                     .background(Circle().fill(Color.black.opacity(0.6)))
             }
             .buttonStyle(.plain)

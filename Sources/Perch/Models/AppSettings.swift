@@ -35,6 +35,13 @@ enum IslandStyle: String, CaseIterable, Identifiable {
     var isAttached: Bool { self == .notch }
 }
 
+/// Island colours: always dark, always light, or following macOS.
+enum IslandTheme: String, CaseIterable, Identifiable {
+    case dark, light, system
+    var id: String { rawValue }
+    var label: String { rawValue.capitalized }
+}
+
 enum OutlineTint: String, CaseIterable, Identifiable {
     case blue, orange, purple, green, white
     var id: String { rawValue }
@@ -66,6 +73,7 @@ final class AppSettings: ObservableObject {
     }
     /// Filter tabs (All, Images, Text, Files, Recent) in the shelf header. Off: the shelf shows everything.
     @Published var showFilters: Bool { didSet { defaults.set(showFilters, forKey: Keys.showFilters) } }
+    @Published var theme: IslandTheme { didSet { defaults.set(theme.rawValue, forKey: Keys.theme) } }
     @Published var background: IslandBackground { didSet { defaults.set(background.rawValue, forKey: Keys.background) } }
     @Published var outline: IslandOutline { didSet { defaults.set(outline.rawValue, forKey: Keys.outline) } }
     @Published var tint: OutlineTint { didSet { defaults.set(tint.rawValue, forKey: Keys.tint) } }
@@ -81,6 +89,7 @@ final class AppSettings: ObservableObject {
 
     private enum Keys {
         static let background = "background"
+        static let theme = "theme"
         static let showFilters = "showFilters"
         static let position = "position"
         static let style = "style"
@@ -109,6 +118,7 @@ final class AppSettings: ObservableObject {
             floatingCenter = nil
         }
         showFilters = d.object(forKey: Keys.showFilters) as? Bool ?? false
+        theme = IslandTheme(rawValue: d.string(forKey: Keys.theme) ?? "") ?? .dark
         background = IslandBackground(rawValue: d.string(forKey: Keys.background) ?? "") ?? .glass
         outline = IslandOutline(rawValue: d.string(forKey: Keys.outline) ?? "") ?? .glow
         tint = OutlineTint(rawValue: d.string(forKey: Keys.tint) ?? "") ?? .blue

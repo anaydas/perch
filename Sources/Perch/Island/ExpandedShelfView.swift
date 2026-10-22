@@ -2,6 +2,7 @@ import AppKit
 import SwiftUI
 
 struct ExpandedShelfView: View {
+    @Environment(\.islandAccent) private var accent
     @ObservedObject var model: IslandViewModel
     @ObservedObject var store: ShelfStore
     @ObservedObject var settings: AppSettings
@@ -58,7 +59,7 @@ struct ExpandedShelfView: View {
             .overlay {
                 if model.isDropTargeted && !store.isDraggingOut {
                     DropZoneView()
-                        .background(RoundedRectangle(cornerRadius: 16).fill(Color.black.opacity(0.85)))
+                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
                 }
             }
 
@@ -105,7 +106,7 @@ struct ExpandedShelfView: View {
             } else {
                 HStack(spacing: 7) {
                     Image(systemName: "tray.full.fill")
-                        .foregroundStyle(Color.accentColor)
+                        .foregroundStyle(accent)
                     Text("Shelf")
                         .font(.system(size: 14, weight: .semibold))
                     countBadge("\(store.items.count)")
@@ -155,7 +156,7 @@ struct ExpandedShelfView: View {
             .foregroundStyle(.secondary)
             .padding(.horizontal, 7)
             .padding(.vertical, 2)
-            .background(Capsule().fill(Color.white.opacity(0.1)))
+            .background(Capsule().fill(Color.primary.opacity(0.1)))
     }
 
     /// Shelf: hints. Claude view: the full usage meters.
@@ -192,10 +193,10 @@ private struct ClaudeButton: View {
         Button(action: action) {
             ZStack {
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(active ? ClaudeLogo.orange.opacity(0.25) : Color.white.opacity(0.1))
+                    .fill(active ? ClaudeLogo.orange.opacity(0.25) : Color.primary.opacity(0.1))
                 if let percent = fiveHourPercent {
                     Circle()
-                        .stroke(Color.white.opacity(0.15), lineWidth: 2)
+                        .stroke(Color.primary.opacity(0.15), lineWidth: 2)
                         .frame(width: 22, height: 22)
                     Circle()
                         .trim(from: 0, to: max(0.02, min(percent, 100) / 100))
@@ -237,12 +238,13 @@ private struct EmptyClaudeView: View {
         .frame(height: IslandMetrics.cardHeight)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(Color.white.opacity(0.15), style: StrokeStyle(lineWidth: 1.5, dash: [6, 5]))
+                .strokeBorder(Color.primary.opacity(0.15), style: StrokeStyle(lineWidth: 1.5, dash: [6, 5]))
         )
     }
 }
 
 private struct IconButton: View {
+    @Environment(\.islandAccent) private var accent
     let systemName: String
     let help: String
     let highlighted: Bool
@@ -254,7 +256,7 @@ private struct IconButton: View {
                 .font(.system(size: 12, weight: .semibold))
                 .frame(width: 30, height: 30)
                 .background(RoundedRectangle(cornerRadius: 8)
-                    .fill(highlighted ? Color.accentColor : Color.white.opacity(0.1)))
+                    .fill(highlighted ? accent : Color.primary.opacity(0.1)))
         }
         .buttonStyle(.plain)
         .help(help)
@@ -262,11 +264,12 @@ private struct IconButton: View {
 }
 
 private struct DropZoneView: View {
+    @Environment(\.islandAccent) private var accent
     var body: some View {
         VStack(spacing: 8) {
             Image(systemName: "arrow.down.to.line")
                 .font(.system(size: 24, weight: .semibold))
-                .foregroundStyle(Color.accentColor)
+                .foregroundStyle(accent)
             Text("Drop to pin on Shelf")
                 .font(.system(size: 14, weight: .semibold))
         }
@@ -274,7 +277,7 @@ private struct DropZoneView: View {
         .frame(height: IslandMetrics.cardHeight)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(Color.accentColor, style: StrokeStyle(lineWidth: 2, dash: [7, 5]))
+                .strokeBorder(accent, style: StrokeStyle(lineWidth: 2, dash: [7, 5]))
         )
     }
 }
@@ -295,7 +298,7 @@ private struct EmptyShelfView: View {
         .frame(height: IslandMetrics.cardHeight)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(Color.white.opacity(0.15), style: StrokeStyle(lineWidth: 1.5, dash: [6, 5]))
+                .strokeBorder(Color.primary.opacity(0.15), style: StrokeStyle(lineWidth: 1.5, dash: [6, 5]))
         )
     }
 }
@@ -388,8 +391,9 @@ private struct CardStrip<Item: Identifiable, Card: View>: View {
             }
             .padding(.horizontal, label == nil ? 0 : 7)
             .frame(minWidth: 24, minHeight: 24)
+            .foregroundStyle(.white)
             .background(Capsule().fill(Color.black.opacity(0.7)))
-            .overlay(Capsule().strokeBorder(Color.white.opacity(0.15)))
+            .overlay(Capsule().strokeBorder(Color.primary.opacity(0.15)))
         }
         .buttonStyle(.plain)
         .transition(.opacity)

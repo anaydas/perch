@@ -6,7 +6,7 @@ extension ClaudeSession.Status {
         switch self {
         case .waiting: return Color(red: 0.98, green: 0.69, blue: 0.20)
         case .working: return ClaudeLogo.orange
-        case .idle: return Color.white.opacity(0.45)
+        case .idle: return Color.primary.opacity(0.45)
         }
     }
 }
@@ -187,16 +187,16 @@ struct SessionCardView: View {
                     .frame(maxWidth: .infinity, minHeight: 20)
                     .background(RoundedRectangle(cornerRadius: 6)
                         .fill(session.status == .waiting ? ClaudeSession.Status.waiting.color.opacity(0.3)
-                                                         : Color.white.opacity(hovering ? 0.18 : 0.12)))
+                                                         : Color.primary.opacity(hovering ? 0.18 : 0.12)))
             }
             .buttonStyle(.plain)
         }
         .padding(6)
         .frame(width: IslandMetrics.cardWidth, height: IslandMetrics.cardHeight)
-        .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(hovering ? 0.11 : 0.08)))
+        .background(RoundedRectangle(cornerRadius: 10).fill(Color.primary.opacity(hovering ? 0.11 : 0.08)))
         .overlay(RoundedRectangle(cornerRadius: 10)
             .strokeBorder(session.status == .waiting ? ClaudeSession.Status.waiting.color.opacity(0.8)
-                                                     : Color.white.opacity(0.1)))
+                                                     : Color.primary.opacity(0.1)))
         .contentShape(RoundedRectangle(cornerRadius: 10))
         .onHover { hovering = $0 }
         .onTapGesture { watcher.open(session) }
@@ -270,7 +270,7 @@ struct ClaudeUsageBar: View {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     ZStack(alignment: .leading) {
-                        Capsule().fill(Color.white.opacity(0.12))
+                        Capsule().fill(Color.primary.opacity(0.12))
                         Capsule().fill(ClaudeLogo.orange)
                             .frame(width: max(percent > 0 ? 4 : 0, width * percent / 100))
                     }

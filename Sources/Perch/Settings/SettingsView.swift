@@ -51,6 +51,11 @@ struct SettingsView: View {
             }
 
             Section("Appearance") {
+                Picker("Theme", selection: $settings.theme) {
+                    ForEach(IslandTheme.allCases) { Text($0.label).tag($0) }
+                }
+                .pickerStyle(.segmented)
+
                 Picker("Background", selection: $settings.background) {
                     ForEach(IslandBackground.allCases) { Text($0.label).tag($0) }
                 }
@@ -60,7 +65,7 @@ struct SettingsView: View {
                     ForEach(IslandOutline.allCases) { Text($0.label).tag($0) }
                 }
 
-                Picker("Outline color", selection: $settings.tint) {
+                Picker("Accent color", selection: $settings.tint) {
                     ForEach(OutlineTint.allCases) { tint in
                         Text(tint.label).tag(tint)
                     }

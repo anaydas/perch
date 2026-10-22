@@ -48,7 +48,8 @@ struct IslandView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
             }
         }
-        .environment(\.colorScheme, .dark)
+        .environment(\.islandAccent, settings.tint.color)
+        .modifier(ThemeModifier(theme: settings.theme))
     }
 
     /// Drags the floating island; the open shelf uses the same gesture on its header.
@@ -100,6 +101,18 @@ struct IslandView: View {
     }
 }
 
+/// The accent colour chosen in Settings (Appearance → Accent color), for island views.
+private struct IslandAccentKey: EnvironmentKey {
+    static let defaultValue = OutlineTint.blue.color
+}
+
+extension EnvironmentValues {
+    var islandAccent: Color {
+        get { self[IslandAccentKey.self] }
+        set { self[IslandAccentKey.self] = newValue }
+    }
+}
+
 /// Drag-to-move for the floating island, shared by the collapsed capsule and the shelf header.
 enum IslandMoveGesture {
     static func make(model: IslandViewModel, actions: IslandActions) -> some Gesture {
@@ -116,18 +129,35 @@ enum IslandMoveGesture {
 struct IslandBackgroundView: View {
     let style: IslandBackground
     let shape: IslandShape
+    @Environment(\.colorScheme) private var scheme
+
+    /// Black in the dark theme, near-white in the light one.
+    private var base: Color { scheme == .dark ? .black : Color(white: 0.97) }
 
     var body: some View {
         switch style {
         case .solid:
-            shape.fill(Color.black)
+            shape.fill(base)
         case .transparent:
-            shape.fill(Color.black.opacity(0.55))
+            shape.fill(base.opacity(scheme == .dark ? 0.55 : 0.75))
         case .glass:
             ZStack {
                 shape.fill(.ultraThinMaterial)
-                shape.fill(Color.black.opacity(0.3))
+                shape.fill(base.opacity(0.3))
             }
+        }
+    }
+}
+
+/// Applies the theme: forces dark or light, or leaves macOS's appearance alone.
+private struct ThemeModifier: ViewModifier {
+    let theme: IslandTheme
+
+    func body(content: Content) -> some View {
+        switch theme {
+        case .dark: content.environment(\.colorScheme, .dark)
+        case .light: content.environment(\.colorScheme, .light)
+        case .system: content
         }
     }
 }
@@ -144,7 +174,7 @@ struct IslandOutlineView: View {
         case .none:
             Color.clear
         case .hairline:
-            shape.stroke(Color.white.opacity(0.35), lineWidth: 1)
+            shape.stroke(Color.primary.opacity(0.35), lineWidth: 1)
         case .accent:
             shape.stroke(tint, lineWidth: 1.5)
         case .glow:
