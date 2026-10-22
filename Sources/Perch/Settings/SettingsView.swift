@@ -5,7 +5,19 @@ import SwiftUI
 struct SettingsView: View {
     @ObservedObject var settings: AppSettings
     @ObservedObject var store: ShelfStore
-    @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
+    @State private var loginStatus = SMAppService.mainApp.status
+    @State private var loginError: String?
+
+    private func setLaunchAtLogin(_ enabled: Bool) {
+        do {
+            if enabled { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
+            loginError = nil
+        } catch {
+            loginError = error.localizedDescription
+            NSLog("Perch: Launch at login \(enabled ? "register" : "unregister") failed: \(error)")
+        }
+        loginStatus = SMAppService.mainApp.status
+    }
 
     private var placementNote: String {
         switch settings.style {
@@ -92,14 +104,24 @@ struct SettingsView: View {
             }
 
             Section("General") {
-                Toggle("Launch at login", isOn: $launchAtLogin)
-                    .onChange(of: launchAtLogin) { enabled in
-                        do {
-                            if enabled { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
-                        } catch {
-                            launchAtLogin = SMAppService.mainApp.status == .enabled
-                        }
+                Toggle("Launch at login", isOn: Binding(
+                    get: { loginStatus == .enabled || loginStatus == .requiresApproval },
+                    set: { setLaunchAtLogin($0) }
+                ))
+                if loginStatus == .requiresApproval {
+                    HStack {
+                        Text("macOS needs you to allow Perch in Login Items.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Button("Open Login Items") { SMAppService.openSystemSettingsLoginItems() }
                     }
+                }
+                if let loginError {
+                    Text("Couldn't change Launch at login: \(loginError)")
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
                 LabeledContent("Keep island open", value: "⌥ Space")
                 LabeledContent("Pin clipboard", value: "⌥ ⌘ V")
             }
@@ -107,5 +129,9 @@ struct SettingsView: View {
         .formStyle(.grouped)
         .frame(width: 480, height: 760)
         .onChange(of: settings.expiryHours) { _ in store.purgeExpired() }
+        // The window is reused, and the login item can change in System Settings: re-check when it comes forward.
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
+            loginStatus = SMAppService.mainApp.status
+        }
     }
 }
