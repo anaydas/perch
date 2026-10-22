@@ -72,6 +72,8 @@ final class AppSettings: ObservableObject {
         }
     }
     /// Filter tabs (All, Images, Text, Files, Recent) in the shelf header. Off: the shelf shows everything.
+    /// Hide the island while a full-screen video plays (Netflix, YouTube, TV, VLC…).
+    @Published var hideInFullScreen: Bool { didSet { defaults.set(hideInFullScreen, forKey: Keys.hideInFullScreen) } }
     @Published var showFilters: Bool { didSet { defaults.set(showFilters, forKey: Keys.showFilters) } }
     @Published var theme: IslandTheme { didSet { defaults.set(theme.rawValue, forKey: Keys.theme) } }
     @Published var background: IslandBackground { didSet { defaults.set(background.rawValue, forKey: Keys.background) } }
@@ -96,6 +98,7 @@ final class AppSettings: ObservableObject {
         static let background = "background"
         static let theme = "theme"
         static let showFilters = "showFilters"
+        static let hideInFullScreen = "hideInFullScreen"
         static let position = "position"
         static let style = "style"
         static let floatingCenter = "floatingCenter"
@@ -126,6 +129,7 @@ final class AppSettings: ObservableObject {
             floatingCenter = nil
         }
         showFilters = d.object(forKey: Keys.showFilters) as? Bool ?? false
+        hideInFullScreen = d.object(forKey: Keys.hideInFullScreen) as? Bool ?? true
         theme = IslandTheme(rawValue: d.string(forKey: Keys.theme) ?? "") ?? .dark
         background = IslandBackground(rawValue: d.string(forKey: Keys.background) ?? "") ?? .glass
         outline = IslandOutline(rawValue: d.string(forKey: Keys.outline) ?? "") ?? .glow

@@ -44,6 +44,8 @@ struct SettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
+                Toggle("Hide while a full-screen video plays", isOn: $settings.hideInFullScreen)
+
                 if settings.style == .floating || settings.style == .orb {
                     Button("Reset position") { settings.floatingCenter = nil }
                         .disabled(settings.floatingCenter == nil)

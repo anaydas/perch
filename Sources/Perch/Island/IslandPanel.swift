@@ -10,6 +10,7 @@ final class IslandPanel: NSPanel {
                    defer: false)
         isFloatingPanel = true
         level = .statusBar
+        // Shows over full-screen apps too; full-screen video hides it (IslandController.checkFullScreen).
         collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
         isOpaque = false
         backgroundColor = .clear

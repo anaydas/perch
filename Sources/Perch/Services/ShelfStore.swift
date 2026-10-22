@@ -155,15 +155,25 @@ final class ShelfStore: ObservableObject {
 
     /// ⌥⌘V: pin whatever is currently on the clipboard.
     func pinCurrentClipboard() {
-        let pb = NSPasteboard.general
+        add(from: NSPasteboard.general)
+    }
+
+    /// Adds what's on a pasteboard: files, else an image, else text. Used by ⌥⌘V and the
+    /// "Add to Perch" service. Returns false if there was nothing it could use.
+    @discardableResult
+    func add(from pb: NSPasteboard) -> Bool {
         if let urls = pb.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL],
            !urls.isEmpty {
             urls.forEach { add(url: $0) }
         } else if Self.hasImage(pb), let image = NSImage(pasteboard: pb) {
             addImage(image, title: "Clipboard image")
-        } else if let string = pb.string(forType: .string) {
+        } else if let string = pb.string(forType: .string),
+                  !string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             addText(string)
+        } else {
+            return false
         }
+        return true
     }
 
     /// Handles anything dropped onto the island.

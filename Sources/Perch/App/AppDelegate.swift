@@ -12,6 +12,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private lazy var claudeSessions = ClaudeSessionWatcher(settings: settings)
     private lazy var claudeUsage = ClaudeUsageWatcher(settings: settings)
     private let hotKeys = HotKeyCenter()
+    private lazy var serviceProvider = ServiceProvider(store: store)
     private lazy var settingsWindow = SettingsWindowController(settings: settings, store: store)
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -28,6 +29,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             onSettings: { [weak self] in self?.settingsWindow.show() },
             onClearRecent: { [weak self] in self?.store.clearRecent() }
         )
+
+        // "Add to Perch" in the Services menu.
+        NSApp.servicesProvider = serviceProvider
+        NSUpdateDynamicServices()
 
         let clipboard = ClipboardWatcher(store: store, settings: settings)
         clipboard.start()

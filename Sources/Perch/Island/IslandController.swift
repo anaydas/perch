@@ -1,5 +1,6 @@
 import AppKit
 import Combine
+import IOKit.pwr_mgt
 import SwiftUI
 
 /// Places the island on the chosen screen edge and decides when it expands or collapses.
@@ -20,6 +21,9 @@ final class IslandController {
     /// A mouse press began on the island: don't treat it as a file drag, and don't
     /// hide or move the island until it's released (it may be dragged to a new spot).
     private var pressStartedOnIsland = false
+    /// Hidden because a full-screen app or video is in front.
+    private var hiddenForFullScreen = false
+    private var fullScreenTimer: Timer?
     private var pressMoved = false
     private var cancellables = Set<AnyCancellable>()
 
@@ -43,6 +47,16 @@ final class IslandController {
 
         positionPanel()
         panel.orderFrontRegardless()
+
+        // Full-screen video (Netflix, YouTube, TV, VLC…): hide while it plays.
+        fullScreenTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            self?.checkFullScreen()
+        }
+        settings.$hideInFullScreen
+            .dropFirst()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in self?.checkFullScreen() }
+            .store(in: &cancellables)
 
         // Poll the cursor: cheap, and it also works while dragging files from other apps.
         trackingTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 30.0, repeats: true) { [weak self] _ in
@@ -173,7 +187,53 @@ final class IslandController {
 
     // MARK: - Hover logic
 
+    // MARK: - Full screen
+
+    private func checkFullScreen() {
+        let shouldHide = settings.hideInFullScreen && Self.frontAppCoversScreen(screen) && Self.videoIsPlaying()
+        guard shouldHide != hiddenForFullScreen else { return }
+        hiddenForFullScreen = shouldHide
+        if shouldHide {
+            model.isPinned = false
+            collapse()
+            panel.orderOut(nil)
+        } else {
+            panel.orderFrontRegardless()
+        }
+    }
+
+    /// Video players and browsers keep the display awake while a video plays (and stop when it's
+    /// paused). Apps that only keep the Mac awake, like the Claude app, use a different assertion.
+    private static func videoIsPlaying() -> Bool {
+        var unmanaged: Unmanaged<CFDictionary>?
+        guard IOPMCopyAssertionsByProcess(&unmanaged) == kIOReturnSuccess,
+              let byProcess = unmanaged?.takeRetainedValue() as? [NSNumber: [[String: Any]]] else { return false }
+        let displayAwake: Set<String> = ["PreventUserIdleDisplaySleep", "NoDisplaySleepAssertion"]
+        return byProcess.values.joined().contains { assertion in
+            guard let type = assertion["AssertType"] as? String, displayAwake.contains(type) else { return false }
+            return (assertion["AssertLevel"] as? Int ?? 255) > 0
+        }
+    }
+
+    /// True when the frontmost app has a normal window exactly covering the screen. Only window
+    /// bounds are read (no titles or contents), which needs no Screen Recording permission.
+    private static func frontAppCoversScreen(_ screen: NSScreen?) -> Bool {
+        guard let screen, let app = NSWorkspace.shared.frontmostApplication,
+              app.bundleIdentifier != "com.apple.finder", app.processIdentifier != getpid(),
+              let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
+                as? [[String: Any]] else { return false }
+        let size = screen.frame.size
+        return windows.contains { window in
+            guard (window[kCGWindowOwnerPID as String] as? pid_t) == app.processIdentifier,
+                  (window[kCGWindowLayer as String] as? Int) == 0,
+                  let boundsDict = window[kCGWindowBounds as String] as? NSDictionary,
+                  let bounds = CGRect(dictionaryRepresentation: boundsDict) else { return false }
+            return abs(bounds.width - size.width) < 1 && abs(bounds.height - size.height) < 1
+        }
+    }
+
     private func trackCursor() {
+        if hiddenForFullScreen { return }
         // Mid-press on the island (clicking or dragging it): keep taking mouse events and
         // leave it as it is, even if the cursor is briefly outside its old frame.
         if store.isDraggingOut && NSEvent.pressedMouseButtons == 0 {
