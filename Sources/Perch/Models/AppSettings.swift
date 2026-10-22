@@ -79,6 +79,10 @@ final class AppSettings: ObservableObject {
     @Published var tint: OutlineTint { didSet { defaults.set(tint.rawValue, forKey: Keys.tint) } }
     @Published var autoCatchScreenshots: Bool { didSet { defaults.set(autoCatchScreenshots, forKey: Keys.screenshots) } }
     @Published var clipboardHistory: Bool { didSet { defaults.set(clipboardHistory, forKey: Keys.clipboard) } }
+    /// Sound when something lands on the shelf. Off by default.
+    @Published var soundOnItemAdded: Bool { didSet { defaults.set(soundOnItemAdded, forKey: Keys.soundItem) } }
+    /// Sound when a Claude Code session needs you or finishes a turn. Off by default.
+    @Published var soundOnClaude: Bool { didSet { defaults.set(soundOnClaude, forKey: Keys.soundClaude) } }
     @Published var hideSensitive: Bool { didSet { defaults.set(hideSensitive, forKey: Keys.sensitive) } }
     /// Master switch for everything Claude (sessions, usage, logo). Off: no Claude polling at all.
     @Published var showClaude: Bool { didSet { defaults.set(showClaude, forKey: Keys.claude) } }
@@ -99,6 +103,8 @@ final class AppSettings: ObservableObject {
         static let screenshots = "autoCatchScreenshots"
         static let clipboard = "clipboardHistory"
         static let sensitive = "hideSensitive"
+        static let soundItem = "soundOnItemAdded"
+        static let soundClaude = "soundOnClaude"
         static let claude = "showClaude"
         static let claudeSessions = "showClaudeSessions"
         static let claudeUsage = "showClaudeUsage"
@@ -125,6 +131,8 @@ final class AppSettings: ObservableObject {
         autoCatchScreenshots = d.object(forKey: Keys.screenshots) as? Bool ?? true
         clipboardHistory = d.object(forKey: Keys.clipboard) as? Bool ?? true
         hideSensitive = d.object(forKey: Keys.sensitive) as? Bool ?? true
+        soundOnItemAdded = d.object(forKey: Keys.soundItem) as? Bool ?? false
+        soundOnClaude = d.object(forKey: Keys.soundClaude) as? Bool ?? false
         showClaude = d.object(forKey: Keys.claude) as? Bool ?? true
         showClaudeSessions = d.object(forKey: Keys.claudeSessions) as? Bool ?? true
         showClaudeUsage = d.object(forKey: Keys.claudeUsage) as? Bool ?? true

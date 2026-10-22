@@ -97,12 +97,18 @@ final class IslandController {
 
         store.itemAdded
             .receive(on: RunLoop.main)
-            .sink { [weak self] _ in self?.itemWasAdded() }
+            .sink { [weak self] _ in
+                self?.itemWasAdded()
+                if settings.soundOnItemAdded { Sounds.play(.itemAdded) }
+            }
             .store(in: &cancellables)
 
         // A session finished or needs you: bounce the pill.
         claudeSessions.needsAttention
-            .sink { [weak self] _ in self?.itemWasAdded() }
+            .sink { [weak self] session in
+                self?.itemWasAdded()
+                if settings.soundOnClaude { Sounds.play(session.status == .waiting ? .claudeNeedsYou : .claudeFinished) }
+            }
             .store(in: &cancellables)
 
         // The collapsed pill grows and shrinks with what it shows (previews, Claude logo, count).

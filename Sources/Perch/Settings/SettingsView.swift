@@ -74,6 +74,8 @@ struct SettingsView: View {
 
             Section("Shelf") {
                 Toggle("Show filter tabs (All, Images, Text, Files, Recent)", isOn: $settings.showFilters)
+                Toggle("Play a sound when an item lands", isOn: $settings.soundOnItemAdded)
+                    .onChange(of: settings.soundOnItemAdded) { on in if on { Sounds.play(.itemAdded) } }
             }
 
             Section("Capture") {
@@ -87,6 +89,8 @@ struct SettingsView: View {
                 Group {
                     Toggle("Running Claude Code sessions", isOn: $settings.showClaudeSessions)
                     Toggle("Plan usage (5-hour and weekly limits)", isOn: $settings.showClaudeUsage)
+                    Toggle("Play a sound when a session needs you or finishes", isOn: $settings.soundOnClaude)
+                        .onChange(of: settings.soundOnClaude) { on in if on { Sounds.play(.claudeNeedsYou) } }
                 }
                 .disabled(!settings.showClaude)
                 .padding(.leading, 16)
