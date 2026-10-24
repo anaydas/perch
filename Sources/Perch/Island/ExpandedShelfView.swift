@@ -28,7 +28,7 @@ struct ExpandedShelfView: View {
     /// The filter, then the search: title, the text of text cards, and file names.
     private var visibleItems: [ShelfItem] {
         let items = filteredItems
-        guard model.isSearching, !query.isEmpty else { return items }
+        guard !query.isEmpty else { return items }
         return items.filter { item in
             [item.title, item.text, item.fileURL?.lastPathComponent].contains { $0?.localizedStandardContains(query) ?? false }
         }
@@ -58,7 +58,7 @@ struct ExpandedShelfView: View {
                     } else {
                         cards(claudeSessions.sessions) { SessionCardView(session: $0, watcher: claudeSessions) }
                     }
-                } else if visibleItems.isEmpty && model.isSearching && !query.isEmpty {
+                } else if visibleItems.isEmpty && !query.isEmpty {
                     NoMatchesView(query: query)
                 } else if visibleItems.isEmpty {
                     EmptyShelfView(filter: filter)
@@ -159,64 +159,70 @@ struct ExpandedShelfView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    /// Left: title, count and the Claude logo. Right: search, pin, settings.
     private var header: some View {
         HStack(spacing: 12) {
-            if showingClaude {
+            // The side panel is narrow: while typing a search, the box takes the title's room.
+            if !(vertical && model.isSearching) {
                 HStack(spacing: 7) {
-                    ClaudeMarkView(status: claudeSessions.sessions.first?.status ?? .idle, size: 14)
-                    Text("Claude")
-                        .font(.system(size: 14, weight: .semibold))
-                    if settings.showClaudeSessions {
-                        let count = claudeSessions.sessions.count
-                        countBadge(count == 1 ? "1 session" : "\(count) sessions")
-                    }
-                }
-                Spacer(minLength: 8)
-            } else if model.isSearching {
-                SearchField(text: $model.searchText, focusToken: model.searchFocusToken,
-                            onSubmit: copyFirstMatch, onEscape: escapeSearch)
-                if !query.isEmpty {
-                    countBadge("\(visibleItems.count) of \(filteredItems.count)")
-                }
-                Spacer(minLength: 4)
-            } else {
-                HStack(spacing: 7) {
-                    Image(systemName: "tray.full.fill")
-                        .foregroundStyle(accent)
-                    Text("Shelf")
-                        .font(.system(size: 14, weight: .semibold))
-                    countBadge("\(store.items.count)")
-                }
-
-                Spacer(minLength: 8)
-
-                if !vertical && settings.showFilters {
-                    Picker("Filter", selection: $model.filter) {
-                        ForEach(ShelfFilter.allCases) { filter in
-                            Text(filter.label).tag(filter)
+                    if showingClaude {
+                        ClaudeMarkView(status: claudeSessions.sessions.first?.status ?? .idle, size: 14)
+                        Text("Claude")
+                            .font(.system(size: 14, weight: .semibold))
+                        if settings.showClaudeSessions {
+                            let count = claudeSessions.sessions.count
+                            countBadge(count == 1 ? "1 session" : "\(count) sessions")
                         }
+                    } else {
+                        Image(systemName: "tray.full.fill")
+                            .foregroundStyle(accent)
+                        Text("Shelf")
+                            .font(.system(size: 14, weight: .semibold))
+                        countBadge(query.isEmpty ? "\(store.items.count)" : "\(visibleItems.count) of \(filteredItems.count)")
                     }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
-                    .frame(width: 330)
-
-                    Spacer(minLength: 8)
+                    if claudeAvailable {
+                        ClaudeButton(active: showingClaude,
+                                     status: claudeSessions.sessions.first?.status ?? .idle,
+                                     fiveHourPercent: claudeUsage.usage?.currentFiveHourPercent) {
+                            model.showingClaude.toggle()
+                        }
+                        .padding(.leading, 4)
+                    }
                 }
             }
 
-            HStack(spacing: 6) {
-                if claudeAvailable {
-                    ClaudeButton(active: showingClaude,
-                                 status: claudeSessions.sessions.first?.status ?? .idle,
-                                 fiveHourPercent: claudeUsage.usage?.currentFiveHourPercent) {
-                        model.showingClaude.toggle()
+            Spacer(minLength: 8)
+
+            if !vertical && settings.showFilters && !showingClaude && !model.isSearching {
+                Picker("Filter", selection: $model.filter) {
+                    ForEach(ShelfFilter.allCases) { filter in
+                        Text(filter.label).tag(filter)
                     }
                 }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .frame(width: 330)
+
+                Spacer(minLength: 8)
+            }
+
+            HStack(spacing: 6) {
                 if !showingClaude {
-                    IconButton(systemName: model.isSearching ? "xmark" : "magnifyingglass",
-                               help: model.isSearching ? "Close search (Esc)" : "Search the shelf (⌥⌘F)",
-                               highlighted: false,
-                               action: model.isSearching ? actions.endSearch : actions.startSearch)
+                    if model.isSearching {
+                        // Opens in place of the search button; a click anywhere else turns it back.
+                        SearchField(text: $model.searchText, focusToken: model.searchFocusToken,
+                                    onSubmit: copyFirstMatch, onEscape: escapeSearch,
+                                    onHover: { model.searchFieldHovered = $0 })
+                            .frame(width: vertical ? nil : 240)
+                            .frame(maxWidth: vertical ? .infinity : 240)
+                            .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .trailing)))
+                    } else {
+                        // Accent-coloured while a search is filtering the cards.
+                        IconButton(systemName: "magnifyingglass",
+                                   help: query.isEmpty ? "Search the shelf (⌥⌘F)" : "Searching for “\(query)” – click to change",
+                                   highlighted: !query.isEmpty,
+                                   action: actions.startSearch)
+                    }
                 }
                 IconButton(systemName: model.isPinned ? "pin.fill" : "pin",
                            help: model.isPinned ? "Let the island close" : "Keep the island open (⌥Space)",
@@ -224,6 +230,7 @@ struct ExpandedShelfView: View {
                            action: actions.togglePin)
                 IconButton(systemName: "gearshape", help: "Settings", highlighted: false, action: actions.openSettings)
             }
+            .animation(.easeOut(duration: 0.15), value: model.isSearching)
         }
         .frame(height: 30)
         // Floating/orb: drag the open shelf around by its header.
@@ -253,11 +260,11 @@ struct ExpandedShelfView: View {
         } else {
             HStack {
                 Text(showingClaude ? "Click a session to open it · right-click for more"
-                     : model.isSearching ? "Return copies the first match · Esc clears"
+                     : (model.isSearching || !query.isEmpty) ? "Return copies the first match · Esc clears"
                      : "Drag in to pin · drag out to use · double-click to open")
                 Spacer()
                 Text(showingClaude ? "Click the Claude logo to go back"
-                     : model.isSearching ? "⌥⌘F searches from anywhere" : "⌥⌘V pins clipboard")
+                     : (model.isSearching || !query.isEmpty) ? "⌥⌘F searches from anywhere" : "⌥⌘V pins clipboard")
             }
             .font(.system(size: 10.5))
             .foregroundStyle(.secondary)
@@ -372,6 +379,7 @@ private struct SearchField: View {
     let focusToken: Int
     let onSubmit: () -> Void
     let onEscape: () -> Void
+    let onHover: (Bool) -> Void
     @FocusState private var focused: Bool
 
     var body: some View {
@@ -385,18 +393,12 @@ private struct SearchField: View {
                 .focused($focused)
                 .onSubmit(onSubmit)
                 .onExitCommand(perform: onEscape)
-            if !text.isEmpty {
-                Button { text = "" } label: {
-                    Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-                .help("Clear")
-            }
         }
         .padding(.horizontal, 10)
-        .frame(height: 28)
-        .frame(maxWidth: 360)
+        .frame(height: 30)
         .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.1)))
+        .contentShape(RoundedRectangle(cornerRadius: 8))
+        .onHover(perform: onHover)
         .onAppear { DispatchQueue.main.async { focused = true } }
         .onChange(of: focusToken) { _ in DispatchQueue.main.async { focused = true } }
     }

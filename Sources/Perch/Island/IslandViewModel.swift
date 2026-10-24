@@ -14,6 +14,8 @@ final class IslandViewModel: ObservableObject {
     /// Quick search (🔍 or ⌥⌘F): the search box is showing, and what's typed in it.
     @Published var isSearching = false
     @Published var searchText = ""
+    /// The mouse is over the search box (a click anywhere else closes it).
+    var searchFieldHovered = false
     /// Bumped to move the keyboard into the search box.
     @Published var searchFocusToken = 0
     /// Selected shelf cards (click, ⌘-click, ⇧-click), for Quick Look, copy and multi-drag.

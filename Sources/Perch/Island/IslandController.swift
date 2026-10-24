@@ -116,6 +116,9 @@ final class IslandController {
                 if self.model.isExpanded {
                     // Take the keyboard (Esc, Space, ⌘A, ⌘C) without bringing Perch to the front.
                     if !self.panel.isKeyWindow { self.panel.makeKey() }
+                    // A click outside the search box turns it back into the 🔍 button (the
+                    // search keeps filtering until it's cleared or the shelf closes).
+                    if self.model.isSearching && !self.model.searchFieldHovered { self.closeSearchField() }
                     // A plain click anywhere that isn't a card clears the selection.
                     let modifiers = event.modifierFlags.intersection([.command, .shift])
                     if self.pressItemID == nil && modifiers.isEmpty && !self.model.selection.isEmpty {
@@ -210,9 +213,16 @@ final class IslandController {
         panel.makeKey()
     }
 
+    /// Esc on an empty search box: close it and stop searching.
     func endSearch() {
-        model.isSearching = false
         model.searchText = ""
+        closeSearchField()
+    }
+
+    /// Back to the 🔍 button; whatever was typed keeps filtering.
+    private func closeSearchField() {
+        model.isSearching = false
+        model.searchFieldHovered = false
         model.isPinned = pinnedBeforeSearch
     }
 
