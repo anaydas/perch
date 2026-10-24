@@ -11,6 +11,15 @@ enum PerchMain {
             exit(0)
         }
 
+        // Used to make the intro video: draws each island state the video animates, then quits.
+        if let flag = CommandLine.arguments.firstIndex(of: "--render-video-states") {
+            let args = CommandLine.arguments
+            let folder = args.indices.contains(flag + 1) ? args[flag + 1] : "build/video-states"
+            _ = NSApplication.shared
+            VideoStates.render(to: URL(fileURLWithPath: folder))
+            exit(0)
+        }
+
         // Used to make the README screenshots: draws the island with sample data, then quits.
         if let flag = CommandLine.arguments.firstIndex(of: "--render-screenshots") {
             let args = CommandLine.arguments

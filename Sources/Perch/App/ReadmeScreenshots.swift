@@ -119,7 +119,7 @@ enum ReadmeScreenshots {
 
     // MARK: - Sample data
 
-    private static func addSampleItems(to store: ShelfStore, files: URL) {
+    static func addSampleItems(to store: ShelfStore, files: URL) {
         try? FileManager.default.createDirectory(at: files, withIntermediateDirectories: true)
         func file(_ name: String, bytes: Int) -> URL {
             let url = files.appendingPathComponent(name)
@@ -141,7 +141,7 @@ enum ReadmeScreenshots {
         if let chart = store.items.first(where: { $0.title == "Q3 revenue" }) { store.toggleStar(chart) }
     }
 
-    private static var sampleSessions: [ClaudeSession] {
+    static var sampleSessions: [ClaudeSession] {
         [
             ClaudeSession(id: "s1", pid: 1, title: "API refactor", cwd: "~/code/api", status: .waiting,
                           waitingFor: "input needed", source: .terminal, hostSessionId: nil, statusUpdatedAt: Date()),
@@ -152,15 +152,15 @@ enum ReadmeScreenshots {
         ]
     }
 
-    private static var sampleUsage: ClaudeUsage {
+    static var sampleUsage: ClaudeUsage {
         ClaudeUsage(fiveHour: .init(usedPercent: 42, resetsAt: Date().addingTimeInterval(2 * 3600 + 18 * 60)),
                     weekly: .init(usedPercent: 18, resetsAt: Date().addingTimeInterval(3 * 86400 + 5 * 3600)),
                     updatedAt: Date(), source: .statusLine)
     }
 
-    private enum SampleImage { case chart, sunset, login }
+    enum SampleImage { case chart, sunset, login }
 
-    private static func sampleImage(_ kind: SampleImage) -> NSImage {
+    static func sampleImage(_ kind: SampleImage) -> NSImage {
         NSImage(size: NSSize(width: 480, height: 320), flipped: false) { rect in
             func color(_ r: CGFloat, _ g: CGFloat, _ b: CGFloat) -> NSColor { NSColor(srgbRed: r, green: g, blue: b, alpha: 1) }
             switch kind {

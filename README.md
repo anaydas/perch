@@ -66,37 +66,89 @@ All of these are also in the app: menu bar bird → **Keyboard Shortcuts…**, S
 | ? | Show all keyboard shortcuts (in the open shelf) |
 | Right-click a card | Quick Look, Copy, Open, Show in Finder, Pin, Fix at the Front, Star, Remove (and "… N Items" for a selection) |
 
-## Requirements
+## Install
 
-- macOS 13 Ventura or newer (Apple silicon or Intel)
-- Xcode 15+ **or** just the Command Line Tools (`xcode-select --install`)
+Needs macOS 13 or newer and Swift 5.9+ (Xcode 15+, or just the Command Line Tools: `xcode-select --install`).
 
-## Build and install
+1. **Clone the repo** anywhere you like:
+
+   ```bash
+   git clone https://github.com/anaydas/perch.git
+   cd perch
+   ```
+
+2. **Install** (builds Perch, copies it to `/Applications` and opens it):
+
+   ```bash
+   ./scripts/install.sh
+   ```
+
+   Or, to also get the **Claude plan usage meters** (5-hour and weekly limits, and the ring around the Claude logo):
+
+   ```bash
+   ./scripts/install.sh --with-claude-usage
+   ```
+
+3. **Allow access** when macOS asks for your **Documents** or **Desktop** folder (that's where screenshots are
+   saved), and later for **Terminal/iTerm2** when you first click a terminal Claude session.
+
+4. **Optional:** turn on **Launch at login** in Perch → Settings → General.
+
+The scripts find the repo from their own location, so you can run them from any folder
+(for example `~/code/perch/scripts/install.sh`).
+
+### Claude Code sessions and usage
+
+- **Sessions** need no setup: start a Claude Code session (in the Claude app or with `claude` in a terminal),
+  open the shelf and click the Claude logo next to "Shelf".
+- **Usage meters** come from a Claude Code status line. `--with-claude-usage` copies
+  `scripts/claude-statusline.sh` to `~/.claude/perch/statusline.sh` and sets it as `statusLine` in
+  `~/.claude/settings.json` (your settings are backed up to `~/.claude/perch/settings.backup.json` first; a status
+  line of your own is left alone). To see live numbers, start a **new** `claude` session and send any message.
+  Terminal sessions update it for sure; the Claude app's Code tab may not run status lines, in which case Perch
+  falls back to the Claude app's own (occasional) usage history.
+
+## Update
+
+After pulling new changes, install again (your shelf and settings are kept):
 
 ```bash
-cd ~/Documents/Workspace/perch
-./scripts/build-app.sh
-open build/Perch.app                 # try it
-cp -R build/Perch.app /Applications/ # install it
+git pull
+./scripts/install.sh
 ```
 
-To work on it in Xcode: `open Package.swift`, pick the **Perch** scheme and press ⌘R.
+## Reinstall from scratch (with Claude meters)
 
-### First launch
+1. **Uninstall everything** (app, shelf items, settings, status line, permissions):
 
-- The app has no Dock icon. Look for the little bird in the menu bar (Settings, Quit) and the island at the notch.
-- If macOS asks for access to your **Desktop** or **Documents** folder, allow it: that's where screenshots are saved.
-- **Building from source works on any Mac** (macOS 13+ with Swift 5.9+): clone, run `./scripts/build-app.sh`, done.
-- **Sharing the built `Perch.app`:** it's signed locally ("ad-hoc"), so on another Mac, macOS blocks it at first.
-  Open it once via System Settings → Privacy & Security → **Open Anyway**, or run
-  `xattr -dr com.apple.quarantine /Applications/Perch.app`. Opening without that step for everyone needs an
-  Apple Developer account to sign and notarize it. A build from an Intel Mac runs on Apple silicon through
-  Rosetta (build on the Apple silicon Mac itself for a native app).
+   ```bash
+   ./scripts/uninstall.sh --yes
+   ```
+
+   To keep your shelf items and settings, use `./scripts/uninstall.sh --yes --keep-data` instead.
+
+2. **Install again, with the usage meters:**
+
+   ```bash
+   ./scripts/install.sh --with-claude-usage
+   ```
+
+3. **Allow access** again when macOS asks (Documents/Desktop, Terminal/iTerm2): a fresh install starts over.
+
+4. **Start a new `claude` session and send any message**: the meters appear in the Claude view once Claude Code
+   has your limits.
+
+Steps 1 and 2 in one go:
+
+```bash
+./scripts/uninstall.sh --yes && ./scripts/install.sh --with-claude-usage
+```
 
 ## Uninstall
 
+From the folder you cloned Perch into:
+
 ```bash
-cd ~/Documents/Workspace/perch
 ./scripts/uninstall.sh
 ```
 
@@ -106,6 +158,8 @@ your shelf items and settings, the Claude Code status line Perch added (only if 
 
 - `--keep-data` keeps your shelf items and settings, for a reinstall later.
 - `--yes` skips the question.
+
+To install again afterwards, see [Reinstall from scratch](#reinstall-from-scratch-with-claude-meters).
 
 <details>
 <summary>Uninstall by hand</summary>
@@ -120,7 +174,7 @@ your shelf items and settings, the Claude Code status line Perch added (only if 
 3. **Delete the app** (and your local build, if you built it):
 
    ```bash
-   rm -rf /Applications/Perch.app ~/Documents/Workspace/perch/build
+   rm -rf /Applications/Perch.app build   # run from the folder you cloned perch into
    ```
 
 4. **Delete your shelf items and settings.** This removes everything on the shelf for good:
@@ -152,6 +206,27 @@ your shelf items and settings, the Claude Code status line Perch added (only if 
 
 </details>
 
+## Notes
+
+- The app has no Dock icon. Look for the little bird in the menu bar (Settings, Quit) and the island at the notch.
+- **Building from source works on any Mac** (macOS 13+ with Swift 5.9+): clone, run `./scripts/install.sh`, done.
+- **Sharing the built `Perch.app`:** it's signed locally ("ad-hoc"), so on another Mac, macOS blocks it at first.
+  Open it once via System Settings → Privacy & Security → **Open Anyway**, or run
+  `xattr -dr com.apple.quarantine /Applications/Perch.app`. Opening without that step for everyone needs an
+  Apple Developer account to sign and notarize it. A build from an Intel Mac runs on Apple silicon through
+  Rosetta (build on the Apple silicon Mac itself for a native app).
+
+## Development
+
+### Build without installing
+
+```bash
+./scripts/build-app.sh   # builds build/Perch.app
+open build/Perch.app     # try it
+```
+
+To work on it in Xcode: `open Package.swift`, pick the **Perch** scheme and press ⌘R.
+
 ## Project layout
 
 ```
@@ -163,6 +238,7 @@ Sources/Perch/
   Island/       panel, layout for each position/style, hover and drag logic, island shape, SwiftUI views
   Settings/     settings window
 Resources/Info.plist, AppIcon.icns, AppIcon-1024.png
+scripts/install.sh         build, install to /Applications, open (--with-claude-usage for the meters)
 scripts/build-app.sh       build build/Perch.app
 scripts/uninstall.sh       remove Perch from this Mac
 scripts/make-icon.swift    draw the app icon (Resources/AppIcon.icns)
