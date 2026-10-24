@@ -13,13 +13,24 @@ struct ExpandedShelfView: View {
     /// Without filter tabs, the shelf always shows everything.
     private var filter: ShelfFilter { settings.showFilters ? model.filter : .all }
 
-    private var visibleItems: [ShelfItem] {
+    private var filteredItems: [ShelfItem] {
         switch filter {
         case .all: return store.ordered
         case .images: return store.ordered.filter { $0.kind == .image }
         case .text: return store.ordered.filter { $0.kind == .text }
         case .files: return store.ordered.filter { $0.kind == .file }
         case .recent: return store.recent
+        }
+    }
+
+    private var query: String { model.searchText.trimmingCharacters(in: .whitespacesAndNewlines) }
+
+    /// The filter, then the search: title, the text of text cards, and file names.
+    private var visibleItems: [ShelfItem] {
+        let items = filteredItems
+        guard model.isSearching, !query.isEmpty else { return items }
+        return items.filter { item in
+            [item.title, item.text, item.fileURL?.lastPathComponent].contains { $0?.localizedStandardContains(query) ?? false }
         }
     }
 
@@ -47,6 +58,8 @@ struct ExpandedShelfView: View {
                     } else {
                         cards(claudeSessions.sessions) { SessionCardView(session: $0, watcher: claudeSessions) }
                     }
+                } else if visibleItems.isEmpty && model.isSearching && !query.isEmpty {
+                    NoMatchesView(query: query)
                 } else if visibleItems.isEmpty {
                     EmptyShelfView(filter: filter)
                 } else {
@@ -76,6 +89,20 @@ struct ExpandedShelfView: View {
         } else {
             CardStrip(items: items, card: card)
         }
+    }
+
+    // MARK: - Search
+
+    /// Return: copy the first match and close the shelf.
+    private func copyFirstMatch() {
+        guard let first = visibleItems.first else { return }
+        store.copy(first)
+        actions.dismiss()
+    }
+
+    /// Esc: clear what's typed; on an empty box, leave search.
+    private func escapeSearch() {
+        if model.searchText.isEmpty { actions.endSearch() } else { model.searchText = "" }
     }
 
     // MARK: - Selection
@@ -145,6 +172,13 @@ struct ExpandedShelfView: View {
                     }
                 }
                 Spacer(minLength: 8)
+            } else if model.isSearching {
+                SearchField(text: $model.searchText, focusToken: model.searchFocusToken,
+                            onSubmit: copyFirstMatch, onEscape: escapeSearch)
+                if !query.isEmpty {
+                    countBadge("\(visibleItems.count) of \(filteredItems.count)")
+                }
+                Spacer(minLength: 4)
             } else {
                 HStack(spacing: 7) {
                     Image(systemName: "tray.full.fill")
@@ -177,6 +211,12 @@ struct ExpandedShelfView: View {
                                  fiveHourPercent: claudeUsage.usage?.currentFiveHourPercent) {
                         model.showingClaude.toggle()
                     }
+                }
+                if !showingClaude {
+                    IconButton(systemName: model.isSearching ? "xmark" : "magnifyingglass",
+                               help: model.isSearching ? "Close search (Esc)" : "Search the shelf (⌥⌘F)",
+                               highlighted: false,
+                               action: model.isSearching ? actions.endSearch : actions.startSearch)
                 }
                 IconButton(systemName: model.isPinned ? "pin.fill" : "pin",
                            help: model.isPinned ? "Let the island close" : "Keep the island open (⌥Space)",
@@ -213,9 +253,11 @@ struct ExpandedShelfView: View {
         } else {
             HStack {
                 Text(showingClaude ? "Click a session to open it · right-click for more"
-                                   : "Drag in to pin · drag out to use · double-click to open")
+                     : model.isSearching ? "Return copies the first match · Esc clears"
+                     : "Drag in to pin · drag out to use · double-click to open")
                 Spacer()
-                Text(showingClaude ? "Click the Claude logo to go back" : "⌥⌘V pins clipboard")
+                Text(showingClaude ? "Click the Claude logo to go back"
+                     : model.isSearching ? "⌥⌘F searches from anywhere" : "⌥⌘V pins clipboard")
             }
             .font(.system(size: 10.5))
             .foregroundStyle(.secondary)
@@ -321,6 +363,59 @@ private struct DropZoneView: View {
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(accent, style: StrokeStyle(lineWidth: 2, dash: [7, 5]))
         )
+    }
+}
+
+/// The search box in the header.
+private struct SearchField: View {
+    @Binding var text: String
+    let focusToken: Int
+    let onSubmit: () -> Void
+    let onEscape: () -> Void
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.secondary)
+            TextField("Search the shelf", text: $text)
+                .textFieldStyle(.plain)
+                .font(.system(size: 13))
+                .focused($focused)
+                .onSubmit(onSubmit)
+                .onExitCommand(perform: onEscape)
+            if !text.isEmpty {
+                Button { text = "" } label: {
+                    Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Clear")
+            }
+        }
+        .padding(.horizontal, 10)
+        .frame(height: 28)
+        .frame(maxWidth: 360)
+        .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.1)))
+        .onAppear { DispatchQueue.main.async { focused = true } }
+        .onChange(of: focusToken) { _ in DispatchQueue.main.async { focused = true } }
+    }
+}
+
+private struct NoMatchesView: View {
+    let query: String
+
+    var body: some View {
+        VStack(spacing: 6) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 22))
+                .foregroundStyle(.secondary)
+            Text("No matches for “\(query)”")
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: IslandMetrics.cardHeight)
     }
 }
 

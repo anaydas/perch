@@ -4,15 +4,18 @@ import AppKit
 final class StatusItemController: NSObject {
     private let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
     private let onToggle: () -> Void
+    private let onSearch: () -> Void
     private let onPinClipboard: () -> Void
     private let onSettings: () -> Void
     private let onClearRecent: () -> Void
 
     init(onToggle: @escaping () -> Void,
+         onSearch: @escaping () -> Void,
          onPinClipboard: @escaping () -> Void,
          onSettings: @escaping () -> Void,
          onClearRecent: @escaping () -> Void) {
         self.onToggle = onToggle
+        self.onSearch = onSearch
         self.onPinClipboard = onPinClipboard
         self.onSettings = onSettings
         self.onClearRecent = onClearRecent
@@ -22,6 +25,7 @@ final class StatusItemController: NSObject {
 
         let menu = NSMenu()
         menu.addItem(makeItem("Show / Hide Shelf  (⌥Space)", #selector(toggle)))
+        menu.addItem(makeItem("Search Shelf  (⌥⌘F)", #selector(search)))
         menu.addItem(makeItem("Pin Clipboard  (⌥⌘V)", #selector(pinClipboard)))
         menu.addItem(.separator())
         menu.addItem(makeItem("Settings…", #selector(openSettings), key: ","))
@@ -78,6 +82,7 @@ final class StatusItemController: NSObject {
     }
 
     @objc private func toggle() { onToggle() }
+    @objc private func search() { onSearch() }
     @objc private func pinClipboard() { onPinClipboard() }
     @objc private func openSettings() { onSettings() }
     @objc private func clearRecent() { onClearRecent() }

@@ -33,6 +33,8 @@ final class IslandController {
     private var pressPoint: NSPoint = .zero
     private var pressItemID: UUID?
     private var multiDragStarted = false
+    /// Whether the shelf was pinned before search pinned it open.
+    private var pinnedBeforeSearch = false
     /// The app that was in front before Quick Look opened (handed the keyboard back afterwards).
     private var appBeforeQuickLook: NSRunningApplication?
     private var cancellables = Set<AnyCancellable>()
@@ -46,7 +48,13 @@ final class IslandController {
             togglePin: { [weak self] in self?.togglePinned() },
             openSettings: { [weak self] in self?.onOpenSettings?() },
             moveFloating: { [weak self] offset in self?.moveFloating(by: offset) },
-            quickLook: { [weak self] in self?.toggleQuickLook() }
+            quickLook: { [weak self] in self?.toggleQuickLook() },
+            startSearch: { [weak self] in self?.startSearch() },
+            endSearch: { [weak self] in self?.endSearch() },
+            dismiss: { [weak self] in
+                self?.model.isPinned = false
+                self?.collapse()
+            }
         )
         let root = IslandView(model: model, store: store, settings: settings,
                               claudeSessions: claudeSessions, claudeUsage: claudeUsage, actions: actions)
@@ -185,6 +193,24 @@ final class IslandController {
     }
 
     // MARK: - Public
+
+    /// ⌥⌘F or 🔍: open the shelf with the keyboard in the search box. It stays open while searching.
+    func startSearch() {
+        guard !hiddenForFullScreen else { return }
+        if !model.isSearching { pinnedBeforeSearch = model.isPinned }
+        model.showingClaude = false
+        model.isPinned = true
+        expand()
+        model.isSearching = true
+        model.searchFocusToken += 1
+        panel.makeKey()
+    }
+
+    func endSearch() {
+        model.isSearching = false
+        model.searchText = ""
+        model.isPinned = pinnedBeforeSearch
+    }
 
     func togglePinned() {
         model.isPinned.toggle()
@@ -420,8 +446,10 @@ final class IslandController {
             model.isExpanded = false
             model.isDropTargeted = false
         }
-        // Next time it opens, start on the shelf again, with nothing selected.
+        // Next time it opens, start on the shelf again, with nothing selected and no search.
         model.showingClaude = false
+        model.isSearching = false
+        model.searchText = ""
         model.selection = []
         model.selectionAnchor = nil
         // Give the keyboard back to the app you were in.

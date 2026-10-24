@@ -51,7 +51,7 @@ enum ReadmeScreenshots {
         }
 
         func scene(width: CGFloat, height: CGFloat, position: IslandPosition = .top, style: IslandStyle = .floating,
-                   expanded: Bool, claude: Bool = false) -> some View {
+                   expanded: Bool, claude: Bool = false, search: String? = nil) -> some View {
             var layout = IslandLayout(position: position, style: style)
             layout.visibleFrame = CGRect(x: 0, y: 0, width: width, height: height)
             layout.collapsedExtraWidth = IslandLayout.pillContentWidth(itemCount: store.items.count,
@@ -61,6 +61,7 @@ enum ReadmeScreenshots {
             model.layout = layout
             model.isExpanded = expanded
             model.showingClaude = claude
+            if let search { model.isSearching = true; model.searchText = search }
             let island = IslandView(model: model, store: store, settings: settings,
                                     claudeSessions: sessions, claudeUsage: usage,
                                     actions: IslandActions(togglePin: {}, openSettings: {}))
@@ -73,6 +74,7 @@ enum ReadmeScreenshots {
         save("shelf-open.png", scene(width: 820, height: 266, expanded: true))
         save("claude-view.png", scene(width: 820, height: 266, expanded: true, claude: true))
         save("side-panel.png", scene(width: 420, height: 560, position: .left, expanded: true))
+        save("search.png", scene(width: 820, height: 266, expanded: true, search: "perch"))
         save("styles.png", stylesStrip(store: store, settings: settings, sessions: sessions, usage: usage))
     }
 

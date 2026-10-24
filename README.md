@@ -36,6 +36,7 @@ switching windows.
 - **Optional filter tabs.** By default the shelf shows everything. Turn on Settings → Shelf → Show filter tabs to get All, Images, Text, Files and Recent (a dropdown in the side panel).
 - **Add to Perch from any app.** Select text, an image or files, right-click → Services → **Add to Perch** (also in the app menu → Services). If it isn't listed, turn it on in System Settings → Keyboard → Keyboard Shortcuts → Services → Text / Files and Folders.
 - **Stays out of your movies.** While a full-screen video plays (Netflix, YouTube, Apple TV, VLC…), the island hides, and it comes back when you pause or leave full screen. Other full-screen apps keep it. Turn this off in Settings → Placement.
+- **Quick search.** Press ⌥⌘F from anywhere (or 🔍 in the shelf) and type: cards filter by title, text and file name. Return copies the first match; Esc clears, then closes.
 - **Select, preview, drag several.** Click a card to select it, ⌘-click to add more, ⇧-click for a range. Press Space for Quick Look (arrow keys step through the selection). Drag any selected card and they all come along. Right-click for Copy / Remove all.
 - **Copy with one click.** Every card has a Copy button; double-click opens images and files.
 - **Auto-catch screenshots and screen recordings.** New screenshots (⌘⇧3 / ⌘⇧4 / ⌘⇧5) and screen recordings (⌘⇧5) land on the shelf automatically. Recordings are referenced in place (not copied) and show a video frame, a ▶ badge and their length. File cards show a real preview of the file (video frame, PDF page…). Perch watches the folder screenshots are saved to (Screenshot app → Options → Save to), so allow access when macOS asks for that folder.
@@ -56,6 +57,7 @@ switching windows.
 | --- | --- |
 | ⌥ Space | Keep the island open / let it close |
 | ⌥ ⌘ V | Pin whatever is on the clipboard |
+| ⌥ ⌘ F | Search the shelf (Return copies the first match, Esc clears) |
 | Click / ⌘-click / ⇧-click a card | Select it / add to selection / select a range |
 | Space | Quick Look the selected cards |
 | ⌘A / ⌘C / Esc | Select all / copy selection / clear selection (Esc again closes the shelf) |

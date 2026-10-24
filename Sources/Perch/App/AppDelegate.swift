@@ -25,6 +25,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         statusItem = StatusItemController(
             onToggle: { [weak self] in self?.island?.togglePinned() },
+            onSearch: { [weak self] in self?.island?.startSearch() },
             onPinClipboard: { [weak self] in self?.store.pinCurrentClipboard() },
             onSettings: { [weak self] in self?.settingsWindow.show() },
             onClearRecent: { [weak self] in self?.store.clearRecent() }
@@ -45,6 +46,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // ⌥Space: keep the island open / close it
         hotKeys.register(keyCode: kVK_Space, modifiers: optionKey) { [weak self] in
             self?.island?.togglePinned()
+        }
+        // ⌥⌘F: search the shelf
+        hotKeys.register(keyCode: kVK_ANSI_F, modifiers: optionKey | cmdKey) { [weak self] in
+            self?.island?.startSearch()
         }
         // ⌥⌘V: pin whatever is on the clipboard
         hotKeys.register(keyCode: kVK_ANSI_V, modifiers: optionKey | cmdKey) { [weak self] in

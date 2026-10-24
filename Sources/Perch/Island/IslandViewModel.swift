@@ -11,6 +11,11 @@ final class IslandViewModel: ObservableObject {
     @Published var layout = IslandLayout()
     /// Floating/orb: how far the island has been dragged so far (nil when not dragging).
     @Published var dragOffset: CGSize?
+    /// Quick search (🔍 or ⌥⌘F): the search box is showing, and what's typed in it.
+    @Published var isSearching = false
+    @Published var searchText = ""
+    /// Bumped to move the keyboard into the search box.
+    @Published var searchFocusToken = 0
     /// Selected shelf cards (click, ⌘-click, ⇧-click), for Quick Look, copy and multi-drag.
     @Published var selection: Set<UUID> = []
     /// Where a ⇧-click range starts.
@@ -28,4 +33,9 @@ struct IslandActions {
     var moveFloating: (CGSize) -> Void = { _ in }
     /// Show the selected (or hovered) cards in Quick Look.
     var quickLook: () -> Void = {}
+    /// Open / close the search box.
+    var startSearch: () -> Void = {}
+    var endSearch: () -> Void = {}
+    /// Unpin and close the shelf (Return in search, after copying).
+    var dismiss: () -> Void = {}
 }
