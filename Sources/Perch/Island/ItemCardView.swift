@@ -6,6 +6,7 @@ struct ItemCardView: View {
     let item: ShelfItem
     @ObservedObject var store: ShelfStore
     @ObservedObject var settings: AppSettings
+    var selection = CardSelection()
     @State private var copied = false
     @State private var revealed = false
     @State private var hovering = false
@@ -41,12 +42,27 @@ struct ItemCardView: View {
         .frame(width: IslandMetrics.cardWidth, height: IslandMetrics.cardHeight)
         .background(RoundedRectangle(cornerRadius: 10).fill(Color.primary.opacity(0.08)))
         .overlay(RoundedRectangle(cornerRadius: 10)
-            .strokeBorder(item.isFixed ? accent.opacity(0.8) : Color.primary.opacity(0.1)))
+            .strokeBorder(selection.isSelected ? accent : (item.isFixed ? accent.opacity(0.8) : Color.primary.opacity(0.1)),
+                          lineWidth: selection.isSelected ? 2 : 1))
+        .overlay(alignment: .topLeading) {
+            if selection.isSelected {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 7, weight: .heavy))
+                    .foregroundStyle(.white)
+                    .frame(width: 15, height: 15)
+                    .background(Circle().fill(accent))
+                    .padding(3)
+            }
+        }
         .overlay(alignment: .topTrailing) { cornerControls.padding(3) }
         .contentShape(RoundedRectangle(cornerRadius: 10))
-        .onHover { hovering = $0 }
+        .onHover { inside in
+            hovering = inside
+            selection.onHover(inside)
+        }
         .onDrag { store.itemProvider(for: item) }
         .onTapGesture(count: 2) { store.open(item) }
+        .simultaneousGesture(TapGesture().onEnded { selection.onTap() })
         .contextMenu { menu }
     }
 
@@ -156,6 +172,14 @@ struct ItemCardView: View {
 
     @ViewBuilder
     private var menu: some View {
+        if selection.isSelected && selection.count > 1 {
+            Button("Quick Look \(selection.count) Items") { selection.onQuickLook() }
+            Button("Copy \(selection.count) Items") { selection.onCopyAll() }
+            Divider()
+            Button("Remove \(selection.count) Items") { selection.onRemoveAll() }
+            Divider()
+        }
+        Button("Quick Look") { selection.onQuickLook() }
         Button("Copy") { copy() }
         if item.kind != .text {
             Button("Open") { store.open(item) }
@@ -211,4 +235,16 @@ struct ItemCardView: View {
             withAnimation(.easeOut(duration: 0.2)) { copied = false }
         }
     }
+}
+
+/// How a card takes part in the shelf's selection (all no-ops when it doesn't).
+struct CardSelection {
+    var isSelected = false
+    /// How many cards are selected in total.
+    var count = 0
+    var onTap: () -> Void = {}
+    var onHover: (Bool) -> Void = { _ in }
+    var onQuickLook: () -> Void = {}
+    var onCopyAll: () -> Void = {}
+    var onRemoveAll: () -> Void = {}
 }

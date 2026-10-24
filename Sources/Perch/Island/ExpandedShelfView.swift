@@ -50,7 +50,7 @@ struct ExpandedShelfView: View {
                 } else if visibleItems.isEmpty {
                     EmptyShelfView(filter: filter)
                 } else {
-                    cards(visibleItems) { ItemCardView(item: $0, store: store, settings: settings) }
+                    cards(visibleItems) { ItemCardView(item: $0, store: store, settings: settings, selection: selection(for: $0)) }
                 }
             }
             .frame(maxHeight: vertical ? .infinity : nil)
@@ -75,6 +75,48 @@ struct ExpandedShelfView: View {
             CardGrid(items: items, card: card)
         } else {
             CardStrip(items: items, card: card)
+        }
+    }
+
+    // MARK: - Selection
+
+    private func selection(for item: ShelfItem) -> CardSelection {
+        let selected = selectedItems
+        return CardSelection(
+            isSelected: model.selection.contains(item.id),
+            count: selected.count,
+            onTap: { select(item) },
+            onHover: { inside in
+                if inside { model.hoveredItemID = item.id } else if model.hoveredItemID == item.id { model.hoveredItemID = nil }
+            },
+            onQuickLook: {
+                if !model.selection.contains(item.id) { model.selection = [item.id]; model.selectionAnchor = item.id }
+                actions.quickLook()
+            },
+            onCopyAll: { store.copy(items: selectedItems) },
+            onRemoveAll: {
+                selectedItems.forEach(store.remove)
+                model.selection = []
+            }
+        )
+    }
+
+    /// Selected items, in the order they're shown.
+    private var selectedItems: [ShelfItem] { visibleItems.filter { model.selection.contains($0.id) } }
+
+    /// Click: just this card. ⌘-click: add or remove it. ⇧-click: everything from the last clicked card.
+    private func select(_ item: ShelfItem) {
+        let flags = NSEvent.modifierFlags
+        if flags.contains(.command) {
+            if model.selection.contains(item.id) { model.selection.remove(item.id) } else { model.selection.insert(item.id) }
+            model.selectionAnchor = item.id
+        } else if flags.contains(.shift), let anchor = model.selectionAnchor,
+                  let from = visibleItems.firstIndex(where: { $0.id == anchor }),
+                  let to = visibleItems.firstIndex(where: { $0.id == item.id }) {
+            model.selection = Set(visibleItems[min(from, to)...max(from, to)].map(\.id))
+        } else {
+            model.selection = [item.id]
+            model.selectionAnchor = item.id
         }
     }
 

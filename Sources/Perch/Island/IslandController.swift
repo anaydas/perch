@@ -1,6 +1,7 @@
 import AppKit
 import Combine
 import IOKit.pwr_mgt
+import Quartz
 import SwiftUI
 
 /// Places the island on the chosen screen edge and decides when it expands or collapses.
@@ -25,6 +26,15 @@ final class IslandController {
     private var hiddenForFullScreen = false
     private var fullScreenTimer: Timer?
     private var pressMoved = false
+    private var keyMonitor: Any?
+    private let quickLookSource = QuickLookSource()
+    private let multiDragSource = MultiDragSource()
+    /// Where a press on the island began, and on which card (for multi-drag).
+    private var pressPoint: NSPoint = .zero
+    private var pressItemID: UUID?
+    private var multiDragStarted = false
+    /// The app that was in front before Quick Look opened (handed the keyboard back afterwards).
+    private var appBeforeQuickLook: NSRunningApplication?
     private var cancellables = Set<AnyCancellable>()
 
     init(store: ShelfStore, settings: AppSettings, claudeSessions: ClaudeSessionWatcher, claudeUsage: ClaudeUsageWatcher) {
@@ -35,7 +45,8 @@ final class IslandController {
         let actions = IslandActions(
             togglePin: { [weak self] in self?.togglePinned() },
             openSettings: { [weak self] in self?.onOpenSettings?() },
-            moveFloating: { [weak self] offset in self?.moveFloating(by: offset) }
+            moveFloating: { [weak self] offset in self?.moveFloating(by: offset) },
+            quickLook: { [weak self] in self?.toggleQuickLook() }
         )
         let root = IslandView(model: model, store: store, settings: settings,
                               claudeSessions: claudeSessions, claudeUsage: claudeUsage, actions: actions)
@@ -75,20 +86,61 @@ final class IslandController {
             return Self.horizontalScroll(from: event) ?? event
         }
 
-        // Presses on the island: a click opens it, a drag (floating style) moves it.
+        panel.quickLookSource = quickLookSource
+        panel.onQuickLookClosed = { [weak self] in
+            self?.appBeforeQuickLook?.activate()
+            self?.appBeforeQuickLook = nil
+        }
+        multiDragSource.onEnd = { [weak store] in store?.isDraggingOut = false }
+
+        // Presses on the island: a click opens it, a drag (floating style) moves it, and dragging
+        // one of several selected cards drags them all.
         pressMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .leftMouseDragged, .leftMouseUp]) { [weak self] event in
             guard let self, event.window === self.panel else { return event }
             switch event.type {
             case .leftMouseDown:
                 self.pressStartedOnIsland = true
                 self.pressMoved = false
+                self.multiDragStarted = false
+                self.pressPoint = event.locationInWindow
+                self.pressItemID = self.model.hoveredItemID
+                if self.model.isExpanded {
+                    // Take the keyboard (Esc, Space, ⌘A, ⌘C) without bringing Perch to the front.
+                    if !self.panel.isKeyWindow { self.panel.makeKey() }
+                    // A plain click anywhere that isn't a card clears the selection.
+                    let modifiers = event.modifierFlags.intersection([.command, .shift])
+                    if self.pressItemID == nil && modifiers.isEmpty && !self.model.selection.isEmpty {
+                        self.model.selection = []
+                    }
+                }
             case .leftMouseDragged:
                 self.pressMoved = true
+                if self.handleMultiDrag(event) { return nil }
             default:
                 if self.pressStartedOnIsland && !self.pressMoved && !self.model.isExpanded { self.expand() }
                 self.pressStartedOnIsland = false
             }
             return event
+        }
+
+        // Keys while the shelf has the keyboard: Space = Quick Look, ⌘A = select all,
+        // ⌘C = copy selection, Esc = clear selection.
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self, event.window === self.panel, self.model.isExpanded,
+                  !(self.panel.firstResponder is NSText) else { return event } // typing in a text field
+            let command = event.modifierFlags.contains(.command)
+            switch (event.keyCode, command) {
+            case (49, false): self.toggleQuickLook(); return nil                     // Space
+            case (53, false):                                                         // Esc
+                if self.model.selection.isEmpty { self.model.isPinned = false; self.collapse() } else { self.model.selection = [] }
+                return nil
+            case (0, true): self.model.selection = Set(store.ordered.map(\.id)); return nil   // ⌘A
+            case (8, true):                                                           // ⌘C
+                let items = self.selectedItems()
+                if !items.isEmpty { store.copy(items: items) }
+                return nil
+            default: return event
+            }
         }
 
         // Picking a new position moves a dragged floating island back to that edge.
@@ -177,6 +229,58 @@ final class IslandController {
         }
     }
 
+    // MARK: - Selection, Quick Look, multi-drag
+
+    /// Selected items in shelf order; or the card under the mouse if nothing is selected.
+    private func selectedItems() -> [ShelfItem] {
+        let ordered = store.ordered
+        let selected = ordered.filter { model.selection.contains($0.id) }
+        if !selected.isEmpty { return selected }
+        return ordered.filter { $0.id == model.hoveredItemID }
+    }
+
+    private func toggleQuickLook() {
+        if QLPreviewPanel.sharedPreviewPanelExists(), let preview = QLPreviewPanel.shared(), preview.isVisible {
+            preview.orderOut(nil)
+            return
+        }
+        let urls = selectedItems().compactMap { QuickLookSource.previewURL(for: $0, store: store) }
+        guard !urls.isEmpty, let preview = QLPreviewPanel.shared() else { return }
+        quickLookSource.urls = urls
+        // Quick Look needs Perch active for its keys (arrows, Space to close); the app you were
+        // in comes back when it closes.
+        if let front = NSWorkspace.shared.frontmostApplication, front != .current { appBeforeQuickLook = front }
+        NSApp.activate(ignoringOtherApps: true)
+        panel.makeKey() // Quick Look finds its controller through the key window
+        preview.updateController()
+        preview.reloadData()
+        preview.currentPreviewItemIndex = 0
+        preview.makeKeyAndOrderFront(nil)
+    }
+
+    private var quickLookIsOpen: Bool {
+        QLPreviewPanel.sharedPreviewPanelExists() && (QLPreviewPanel.shared()?.isVisible ?? false)
+    }
+
+    /// Dragging a selected card while several are selected: drag them all, in one session.
+    /// Returns true to keep the event from SwiftUI, whose own single-card drag would otherwise
+    /// sometimes start first.
+    private func handleMultiDrag(_ event: NSEvent) -> Bool {
+        guard let pressed = pressItemID, model.selection.contains(pressed), model.selection.count > 1 else { return false }
+        if multiDragStarted { return true }
+        guard hypot(event.locationInWindow.x - pressPoint.x, event.locationInWindow.y - pressPoint.y) > 3 else {
+            return true // not far enough yet, but don't let SwiftUI start a single drag either
+        }
+        guard let view = panel.contentView else { return false }
+        let point = view.convert(event.locationInWindow, from: nil)
+        let draggingItems = MultiDragSource.draggingItems(for: selectedItems(), store: store, at: point)
+        guard !draggingItems.isEmpty else { return false }
+        multiDragStarted = true
+        store.isDraggingOut = true
+        view.beginDraggingSession(with: draggingItems, event: event, source: multiDragSource)
+        return true
+    }
+
     private func cursorIsOverIsland() -> Bool {
         guard let screen else { return false }
         let margin = model.layout.hoverMargin
@@ -247,7 +351,8 @@ final class IslandController {
             }
         }
 
-        let inside = cursorIsOverIsland()
+        // Keep the shelf open while Quick Look shows its items.
+        let inside = cursorIsOverIsland() || quickLookIsOpen
         // Everywhere except the island, clicks fall through to the apps underneath.
         if panel.ignoresMouseEvents == inside { panel.ignoresMouseEvents = !inside }
 
@@ -315,8 +420,15 @@ final class IslandController {
             model.isExpanded = false
             model.isDropTargeted = false
         }
-        // Next time it opens, start on the shelf again.
+        // Next time it opens, start on the shelf again, with nothing selected.
         model.showingClaude = false
+        model.selection = []
+        model.selectionAnchor = nil
+        // Give the keyboard back to the app you were in.
+        if panel.isKeyWindow && !hiddenForFullScreen {
+            panel.orderOut(nil)
+            panel.orderFrontRegardless()
+        }
     }
 
     private func itemWasAdded() {

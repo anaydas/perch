@@ -11,6 +11,12 @@ final class IslandViewModel: ObservableObject {
     @Published var layout = IslandLayout()
     /// Floating/orb: how far the island has been dragged so far (nil when not dragging).
     @Published var dragOffset: CGSize?
+    /// Selected shelf cards (click, ⌘-click, ⇧-click), for Quick Look, copy and multi-drag.
+    @Published var selection: Set<UUID> = []
+    /// Where a ⇧-click range starts.
+    var selectionAnchor: UUID?
+    /// The card under the mouse (where a press or Space applies when nothing is selected).
+    var hoveredItemID: UUID?
     /// Bumped each time an item is added, to play the "got it" bounce.
     @Published var flashToken = 0
 }
@@ -20,4 +26,6 @@ struct IslandActions {
     var openSettings: () -> Void
     /// Floating/orb: the user finished dragging the island by this much.
     var moveFloating: (CGSize) -> Void = { _ in }
+    /// Show the selected (or hovered) cards in Quick Look.
+    var quickLook: () -> Void = {}
 }

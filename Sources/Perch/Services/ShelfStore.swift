@@ -235,6 +235,25 @@ final class ShelfStore: ObservableObject {
         lastOwnChangeCount = pb.changeCount
     }
 
+    /// Copies several items at once: files and images as file URLs, text joined by blank lines.
+    func copy(items: [ShelfItem]) {
+        guard items.count > 1 else { items.first.map(copy); return }
+        let pb = NSPasteboard.general
+        pb.clearContents()
+        let urls: [NSURL] = items.compactMap { item in
+            switch item.kind {
+            case .image: return imageURL(for: item) as NSURL?
+            case .file: return item.fileURL as NSURL?
+            case .text: return nil
+            }
+        }
+        let text = items.filter { $0.kind == .text }.compactMap(\.text).joined(separator: "\n\n")
+        var objects: [NSPasteboardWriting] = urls
+        if !text.isEmpty { objects.append(text as NSString) }
+        pb.writeObjects(objects)
+        lastOwnChangeCount = pb.changeCount
+    }
+
     /// What gets handed to other apps when a card is dragged out.
     func itemProvider(for item: ShelfItem) -> NSItemProvider {
         isDraggingOut = true // cleared by the island controller once the mouse is released
