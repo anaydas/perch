@@ -34,8 +34,6 @@ final class IslandController {
     private var pressPoint: NSPoint = .zero
     private var pressItemID: UUID?
     private var multiDragStarted = false
-    /// Whether the shelf was pinned before search pinned it open.
-    private var pinnedBeforeSearch = false
     /// The app that was in front before Quick Look opened (handed the keyboard back afterwards).
     private var appBeforeQuickLook: NSRunningApplication?
     private var cancellables = Set<AnyCancellable>()
@@ -204,11 +202,9 @@ final class IslandController {
     /// ⌥⌘F or 🔍: open the shelf with the keyboard in the search box. It stays open while searching.
     func startSearch() {
         guard !hiddenForFullScreen else { return }
-        if !model.isSearching { pinnedBeforeSearch = model.isPinned }
         model.showingClaude = false
-        model.isPinned = true
         expand()
-        model.isSearching = true
+        model.isSearching = true // keeps the shelf open while typing (without touching the pin)
         model.searchFocusToken += 1
         panel.makeKey()
     }
@@ -223,7 +219,6 @@ final class IslandController {
     private func closeSearchField() {
         model.isSearching = false
         model.searchFieldHovered = false
-        model.isPinned = pinnedBeforeSearch
     }
 
     func togglePinned() {
@@ -408,7 +403,8 @@ final class IslandController {
             if dragging || Date().timeIntervalSince(enteredAt!) > dwell { expand() }
         } else {
             enteredAt = nil
-            if model.isExpanded && !model.isPinned {
+            // Stays open while pinned, or while the search box is open.
+            if model.isExpanded && !model.isPinned && !model.isSearching {
                 if leftAt == nil { leftAt = Date() }
                 if let leftAt, Date().timeIntervalSince(leftAt) > 0.15 { collapse() }
             } else {
