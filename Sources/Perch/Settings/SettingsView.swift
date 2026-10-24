@@ -5,6 +5,7 @@ import SwiftUI
 struct SettingsView: View {
     @ObservedObject var settings: AppSettings
     @ObservedObject var store: ShelfStore
+    var onShowShortcuts: () -> Void = {}
     @State private var loginStatus = SMAppService.mainApp.status
     @State private var loginError: String?
 
@@ -134,8 +135,12 @@ struct SettingsView: View {
                         .font(.caption)
                         .foregroundStyle(.red)
                 }
-                LabeledContent("Keep island open", value: "⌥ Space")
-                LabeledContent("Pin clipboard", value: "⌥ ⌘ V")
+                LabeledContent("Keyboard shortcuts") {
+                    Button("Show All Shortcuts…", action: onShowShortcuts)
+                }
+                Text("⌥⌘F search · ⌥⌘V pin clipboard · ⌥Space keep open · ? in the shelf shows them all")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)

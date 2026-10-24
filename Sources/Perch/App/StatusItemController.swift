@@ -7,17 +7,20 @@ final class StatusItemController: NSObject {
     private let onSearch: () -> Void
     private let onPinClipboard: () -> Void
     private let onSettings: () -> Void
+    private let onShortcuts: () -> Void
     private let onClearRecent: () -> Void
 
     init(onToggle: @escaping () -> Void,
          onSearch: @escaping () -> Void,
          onPinClipboard: @escaping () -> Void,
          onSettings: @escaping () -> Void,
+         onShortcuts: @escaping () -> Void,
          onClearRecent: @escaping () -> Void) {
         self.onToggle = onToggle
         self.onSearch = onSearch
         self.onPinClipboard = onPinClipboard
         self.onSettings = onSettings
+        self.onShortcuts = onShortcuts
         self.onClearRecent = onClearRecent
         super.init()
 
@@ -29,6 +32,7 @@ final class StatusItemController: NSObject {
         menu.addItem(makeItem("Pin Clipboard  (⌥⌘V)", #selector(pinClipboard)))
         menu.addItem(.separator())
         menu.addItem(makeItem("Settings…", #selector(openSettings), key: ","))
+        menu.addItem(makeItem("Keyboard Shortcuts…", #selector(openShortcuts), key: "/"))
         menu.addItem(makeItem("Clear Recent", #selector(clearRecent)))
         menu.addItem(.separator())
         menu.addItem(makeItem("Quit Perch", #selector(quit), key: "q"))
@@ -85,6 +89,7 @@ final class StatusItemController: NSObject {
     @objc private func search() { onSearch() }
     @objc private func pinClipboard() { onPinClipboard() }
     @objc private func openSettings() { onSettings() }
+    @objc private func openShortcuts() { onShortcuts() }
     @objc private func clearRecent() { onClearRecent() }
     @objc private func quit() { NSApp.terminate(nil) }
 }

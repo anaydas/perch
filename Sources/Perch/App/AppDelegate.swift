@@ -13,7 +13,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private lazy var claudeUsage = ClaudeUsageWatcher(settings: settings)
     private let hotKeys = HotKeyCenter()
     private lazy var serviceProvider = ServiceProvider(store: store)
-    private lazy var settingsWindow = SettingsWindowController(settings: settings, store: store)
+    private lazy var shortcutsWindow = ShortcutsWindowController()
+    private lazy var settingsWindow = SettingsWindowController(settings: settings, store: store,
+                                                               onShowShortcuts: { [weak self] in self?.shortcutsWindow.show() })
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         claudeSessions.start()
@@ -21,6 +23,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let island = IslandController(store: store, settings: settings,
                                       claudeSessions: claudeSessions, claudeUsage: claudeUsage)
         island.onOpenSettings = { [weak self] in self?.settingsWindow.show() }
+        island.onShowShortcuts = { [weak self] in self?.shortcutsWindow.show() }
         self.island = island
 
         statusItem = StatusItemController(
@@ -28,6 +31,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             onSearch: { [weak self] in self?.island?.startSearch() },
             onPinClipboard: { [weak self] in self?.store.pinCurrentClipboard() },
             onSettings: { [weak self] in self?.settingsWindow.show() },
+            onShortcuts: { [weak self] in self?.shortcutsWindow.show() },
             onClearRecent: { [weak self] in self?.store.clearRecent() }
         )
 

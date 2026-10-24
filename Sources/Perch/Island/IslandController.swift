@@ -8,6 +8,7 @@ import SwiftUI
 final class IslandController {
     let model = IslandViewModel()
     var onOpenSettings: (() -> Void)?
+    var onShowShortcuts: (() -> Void)?
 
     private let store: ShelfStore
     private let settings: AppSettings
@@ -141,6 +142,9 @@ final class IslandController {
             case (49, false): self.toggleQuickLook(); return nil                     // Space
             case (53, false):                                                         // Esc
                 if self.model.selection.isEmpty { self.model.isPinned = false; self.collapse() } else { self.model.selection = [] }
+                return nil
+            case (44, false) where event.modifierFlags.contains(.shift):              // ? (⇧/)
+                self.onShowShortcuts?()
                 return nil
             case (0, true): self.model.selection = Set(store.ordered.map(\.id)); return nil   // ⌘A
             case (8, true):                                                           // ⌘C

@@ -53,6 +53,8 @@ switching windows.
 
 ## Shortcuts
 
+All of these are also in the app: menu bar bird → **Keyboard Shortcuts…**, Settings → General → **Show All Shortcuts…**, or press **?** in the open shelf.
+
 | Shortcut | Action |
 | --- | --- |
 | ⌥ Space | Keep the island open / let it close |
@@ -61,6 +63,7 @@ switching windows.
 | Click / ⌘-click / ⇧-click a card | Select it / add to selection / select a range |
 | Space | Quick Look the selected cards |
 | ⌘A / ⌘C / Esc | Select all / copy selection / clear selection (Esc again closes the shelf) |
+| ? | Show all keyboard shortcuts (in the open shelf) |
 | Right-click a card | Quick Look, Copy, Open, Show in Finder, Pin, Fix at the Front, Star, Remove (and "… N Items" for a selection) |
 
 ## Requirements
