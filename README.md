@@ -213,16 +213,18 @@ To install again afterwards, see [Reinstall from scratch](#reinstall-from-scratc
 - **Sharing the built `Perch.app`:** it's signed locally ("ad-hoc"), so on another Mac, macOS blocks it at first.
   Open it once via System Settings → Privacy & Security → **Open Anyway**, or run
   `xattr -dr com.apple.quarantine /Applications/Perch.app`. Opening without that step for everyone needs an
-  Apple Developer account to sign and notarize it. A build from an Intel Mac runs on Apple silicon through
-  Rosetta (build on the Apple silicon Mac itself for a native app).
+  Apple Developer account to sign and notarize it.
+- **Intel and Apple silicon:** `install.sh` builds for the Mac it runs on, so it's always native. To share one
+  pre-built app that runs natively on both, build it with `./scripts/build-app.sh --universal`.
 
 ## Development
 
 ### Build without installing
 
 ```bash
-./scripts/build-app.sh   # builds build/Perch.app
-open build/Perch.app     # try it
+./scripts/build-app.sh               # builds build/Perch.app for this Mac's processor
+./scripts/build-app.sh --universal   # Intel + Apple silicon in one app (slower; for sharing)
+open build/Perch.app                 # try it
 ```
 
 To work on it in Xcode: `open Package.swift`, pick the **Perch** scheme and press ⌘R.
@@ -239,7 +241,7 @@ Sources/Perch/
   Settings/     settings window
 Resources/Info.plist, AppIcon.icns, AppIcon-1024.png
 scripts/install.sh         build, install to /Applications, open (--with-claude-usage for the meters)
-scripts/build-app.sh       build build/Perch.app
+scripts/build-app.sh       build build/Perch.app (--universal for Intel + Apple silicon)
 scripts/uninstall.sh       remove Perch from this Mac
 scripts/make-icon.swift    draw the app icon (Resources/AppIcon.icns)
 scripts/claude-statusline.sh  Claude Code status line that saves plan usage for Perch
