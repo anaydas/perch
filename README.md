@@ -110,12 +110,18 @@ The scripts find the repo from their own location, so you can run them from any 
 
 ## Update
 
-After pulling new changes, install again (your shelf and settings are kept):
+From the folder you cloned Perch into:
 
 ```bash
-git pull
-./scripts/install.sh
+./scripts/update.sh
 ```
+
+It fetches the latest `main` from GitHub, lists what's new, and reinstalls Perch. Your shelf and settings are kept,
+and if you set up the Claude usage meters, they're refreshed too. It stops instead of overwriting anything if you
+have uncommitted changes, are on another branch, or have local commits that aren't on GitHub.
+
+- `--force` reinstalls even when there's nothing new.
+- `--branch` updates the branch you're on instead of requiring `main`.
 
 ## Reinstall from scratch (with Claude meters)
 
@@ -241,6 +247,7 @@ Sources/Perch/
   Settings/     settings window
 Resources/Info.plist, AppIcon.icns, AppIcon-1024.png
 scripts/install.sh         build, install to /Applications, open (--with-claude-usage for the meters)
+scripts/update.sh          pull the latest main and reinstall
 scripts/build-app.sh       build build/Perch.app (--universal for Intel + Apple silicon)
 scripts/uninstall.sh       remove Perch from this Mac
 scripts/make-icon.swift    draw the app icon (Resources/AppIcon.icns)
