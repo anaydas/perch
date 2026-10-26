@@ -84,7 +84,12 @@ struct SettingsView: View {
             Section("Capture") {
                 Toggle("Catch new screenshots automatically", isOn: $settings.autoCatchScreenshots)
                 Toggle("Catch new screen recordings automatically", isOn: $settings.autoCatchRecordings)
-                Toggle("Keep clipboard history in the Recent tab", isOn: $settings.clipboardHistory)
+                Toggle("Add everything you copy to the shelf", isOn: $settings.clipboardHistory)
+                Text(settings.clipboardHistory
+                     ? "Copied text, images and files land on the shelf (and in the Recent tab)."
+                     : "Off: copies stay off the shelf. Add something on purpose with ⌥⌘V, a drop, or right-click → Services → Add to Perch.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 Toggle("Blur text that looks like a password or API key", isOn: $settings.hideSensitive)
             }
 

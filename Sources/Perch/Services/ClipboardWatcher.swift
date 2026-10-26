@@ -1,6 +1,6 @@
 import AppKit
 
-/// Polls the clipboard and records copies into the "Recent" tab.
+/// Polls the clipboard and adds copies to the shelf, when Settings → Capture → "Add everything you copy" is on.
 final class ClipboardWatcher {
     private let store: ShelfStore
     private let settings: AppSettings
