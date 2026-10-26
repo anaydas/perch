@@ -39,7 +39,7 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
     exit 1
 fi
 
-echo "→ Fetching the latest $branch…"
+echo "→ Fetching the latest ${branch}…"
 git fetch --quiet origin "$branch"
 before=$(git rev-parse HEAD)
 remote=$(git rev-parse "origin/$branch")
