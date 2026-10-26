@@ -97,6 +97,8 @@ Needs macOS 13 or newer and Swift 5.9+ (Xcode 15+, or just the Command Line Tool
 The scripts find the repo from their own location, so you can run them from any folder
 (for example `~/code/perch/scripts/install.sh`).
 
+To get new versions later, run `./scripts/update.sh` (see [Update](#update)).
+
 ### Claude Code sessions and usage
 
 - **Sessions** need no setup: start a Claude Code session (in the Claude app or with `claude` in a terminal),
@@ -110,18 +112,38 @@ The scripts find the repo from their own location, so you can run them from any 
 
 ## Update
 
-From the folder you cloned Perch into:
+To get the latest version, run this from the folder you cloned Perch into:
 
 ```bash
 ./scripts/update.sh
 ```
 
-It fetches the latest `main` from GitHub, lists what's new, and reinstalls Perch. Your shelf and settings are kept,
-and if you set up the Claude usage meters, they're refreshed too. It stops instead of overwriting anything if you
-have uncommitted changes, are on another branch, or have local commits that aren't on GitHub.
+It fetches the latest `main` from GitHub, lists what's new, and reinstalls Perch. Your shelf items and settings are
+kept, and if you set up the Claude usage meters, they're refreshed too. If there's nothing new, it says so and skips
+the rebuild. A typical run:
+
+```text
+→ Fetching the latest main…
+New changes:
+  • Clipboard capture off by default (Settings → Capture)
+  • Add update script (pull latest main and reinstall)
+✓ Updated to c165cbd
+→ Building Perch…
+✓ Built
+→ Installing to /Applications…
+✓ Installed /Applications/Perch.app
+```
 
 - `--force` reinstalls even when there's nothing new.
 - `--branch` updates the branch you're on instead of requiring `main`.
+
+**If it stops**, it hasn't changed anything. It tells you why:
+
+| Message | What to do |
+|---|---|
+| You have uncommitted changes | Commit them, or set them aside with `git stash` (bring them back later with `git stash pop`), then run it again |
+| You're on branch '…', not main | `git switch main`, or update the current branch with `./scripts/update.sh --branch` |
+| Your local main has commits that aren't on GitHub | `git push` them first (or sort out the branch with git), then run it again |
 
 ## Reinstall from scratch (with Claude meters)
 
