@@ -63,7 +63,16 @@ struct ExpandedShelfView: View {
                 } else if visibleItems.isEmpty {
                     EmptyShelfView(filter: filter)
                 } else {
-                    cards(visibleItems) { ItemCardView(item: $0, store: store, settings: settings, selection: selection(for: $0)) }
+                    cards(visibleItems) { item in
+                        ItemCardView(item: item, store: store, settings: settings, selection: selection(for: item))
+                            .background(GeometryReader { geo in
+                                let frame = geo.frame(in: .global)
+                                Color.clear
+                                    .onAppear { model.cardFrames[item.id] = frame }
+                                    .onChange(of: frame) { model.cardFrames[item.id] = $0 }
+                                    .onDisappear { model.cardFrames[item.id] = nil }
+                            })
+                    }
                 }
             }
             .frame(maxHeight: vertical ? .infinity : nil)

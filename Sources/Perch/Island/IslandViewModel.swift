@@ -22,6 +22,9 @@ final class IslandViewModel: ObservableObject {
     var selectionAnchor: UUID?
     /// The card under the mouse (where a press or Space applies when nothing is selected).
     var hoveredItemID: UUID?
+    /// Where each visible card is, in window coordinates (top-left origin). A press is matched to a
+    /// card from these, since SwiftUI's hover events are sometimes missed (right after opening or scrolling).
+    var cardFrames: [UUID: CGRect] = [:]
     /// Bumped each time an item is added, to play the "got it" bounce.
     @Published var flashToken = 0
 }

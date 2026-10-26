@@ -112,7 +112,7 @@ final class IslandController {
                 self.pressMoved = false
                 self.multiDragStarted = false
                 self.pressPoint = event.locationInWindow
-                self.pressItemID = self.model.hoveredItemID
+                self.pressItemID = self.model.isExpanded ? (self.card(at: event.locationInWindow) ?? self.model.hoveredItemID) : nil
                 self.islandDragging = false
                 self.islandDrag = self.isOnDragArea(NSEvent.mouseLocation) ? (NSEvent.mouseLocation, self.islandCenterOnScreen()) : nil
                 if self.model.isExpanded {
@@ -371,6 +371,13 @@ final class IslandController {
         store.isDraggingOut = true
         view.beginDraggingSession(with: draggingItems, event: event, source: multiDragSource)
         return true
+    }
+
+    /// The card at a point in the panel (window coordinates), from the cards' laid-out frames.
+    private func card(at point: NSPoint) -> UUID? {
+        guard let view = panel.contentView else { return nil }
+        let flipped = CGPoint(x: point.x, y: view.bounds.height - point.y)
+        return model.cardFrames.first { $0.value.contains(flipped) }?.key
     }
 
     private func cursorIsOverIsland() -> Bool {
