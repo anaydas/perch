@@ -20,7 +20,10 @@ struct IslandShape: Shape {
     func path(in rect: CGRect) -> Path {
         if detached {
             let radius = min(bottom, rect.width / 2, rect.height / 2)
-            return Path(roundedRect: rect, cornerRadius: radius, style: .continuous)
+            // A fully rounded capsule or circle needs true semicircular ends: "continuous" corners can't
+            // reach half the height and leave short straight stubs at the ends that the outline shows.
+            let fullyRounded = radius >= min(rect.width, rect.height) / 2 - 0.5
+            return Path(roundedRect: rect, cornerRadius: radius, style: fullyRounded ? .circular : .continuous)
         }
         // Draw as if joined to the top edge, then turn the path to face the real edge.
         let vertical = edge.isVertical

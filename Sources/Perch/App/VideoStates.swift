@@ -19,6 +19,9 @@ enum VideoStates {
 
         let settings = AppSettings(defaults: defaults)
         settings.background = .solid
+        // Dark theme with a subtle hairline outline
+        settings.theme = .dark
+        settings.outline = .hairline
         let store = ShelfStore(settings: settings, directory: temp.appendingPathComponent("data"))
         let sessions = ClaudeSessionWatcher(settings: settings)
         let usage = ClaudeUsageWatcher(settings: settings)
@@ -95,20 +98,13 @@ enum VideoStates {
         island("pill.png", expanded: false)
         island("shelf-3.png", expanded: true)
 
-        // Looks: side panel, styles, light theme, accent colours
-        island("side.png", position: .left, expanded: true)
+        // Styles: dark islands (like the hardware notch) without an outline
+        settings.theme = .dark
         settings.outline = .none
         island("style-notch.png", style: .notch, expanded: false)
-        settings.outline = .glow
+        island("style-floating.png", expanded: false)
         island("style-orb.png", style: .orb, expanded: false)
-        settings.theme = .light
-        island("shelf-light.png", expanded: true)
-        settings.theme = .dark
-        settings.tint = .orange
-        island("shelf-orange.png", expanded: true)
-        settings.tint = .purple
-        island("shelf-purple.png", expanded: true)
-        settings.tint = .blue
+        settings.outline = .hairline
 
         // Selection, search, Claude
         let firstThree = Set(store.ordered.prefix(3).map(\.id))
@@ -128,8 +124,7 @@ enum VideoStates {
         settle(store)
         island("shelf-secret.png", expanded: true)
 
-        // The shortcuts window, and loose images the video uses
-        save("shortcuts.png", ShortcutsView().environment(\.colorScheme, .dark), size: CGSize(width: 520, height: 640))
+        // Loose images the video uses
         if let png = dashboardImage().pngData() {
             try? png.write(to: folder.appendingPathComponent("drag-thumb.png"))
         }

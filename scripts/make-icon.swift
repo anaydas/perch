@@ -25,11 +25,11 @@ func drawIcon(in ctx: CGContext, size: CGFloat) {
 
     // Tile
     fill(CGPath(roundedRect: CGRect(x: 4, y: 4, width: 88, height: 88), cornerWidth: 20, cornerHeight: 20, transform: nil), 0xDCE8F7)
-    // The island (perch)
-    fill(CGPath(roundedRect: CGRect(x: 18, y: 58, width: 60, height: 14), cornerWidth: 7, cornerHeight: 7, transform: nil), 0x141414)
-    // Legs
-    fill(CGPath(rect: CGRect(x: 44, y: 55, width: 2, height: 4), transform: nil), 0x141414)
-    fill(CGPath(rect: CGRect(x: 50, y: 55, width: 2, height: 4), transform: nil), 0x141414)
+    // The island (perch), a little below the bird so its legs show (as in the menu bar icon)
+    fill(CGPath(roundedRect: CGRect(x: 18, y: 63, width: 60, height: 13), cornerWidth: 6.5, cornerHeight: 6.5, transform: nil), 0x141414)
+    // Legs: from under the body down to the perch
+    fill(CGPath(roundedRect: CGRect(x: 43.2, y: 54, width: 2.6, height: 10), cornerWidth: 1.3, cornerHeight: 1.3, transform: nil), 0x141414)
+    fill(CGPath(roundedRect: CGRect(x: 50.2, y: 54, width: 2.6, height: 10), cornerWidth: 1.3, cornerHeight: 1.3, transform: nil), 0x141414)
     // Tail
     let tail = CGMutablePath()
     tail.move(to: CGPoint(x: 34, y: 44))
