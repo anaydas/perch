@@ -37,9 +37,8 @@ struct IslandView: View {
         Group {
             if layout.isMovable {
                 // Anywhere on screen: placed at its (possibly dragged) centre.
-                let center = layout.floatingCenter(expanded: expanded, offset: model.dragOffset ?? .zero)
+                let center = layout.floatingCenter(expanded: expanded)
                 island
-                    .gesture(expanded ? nil : moveGesture)
                     .position(center)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -52,10 +51,6 @@ struct IslandView: View {
         .modifier(ThemeModifier(theme: settings.theme))
     }
 
-    /// Drags the floating island; the open shelf uses the same gesture on its header.
-    private var moveGesture: some Gesture {
-        IslandMoveGesture.make(model: model, actions: actions)
-    }
 
     private func shape(closed: Bool = true) -> IslandShape {
         IslandShape(ear: ear, bottom: corner, closed: closed, edge: layout.position, detached: !layout.isAttached)
@@ -110,18 +105,6 @@ extension EnvironmentValues {
     var islandAccent: Color {
         get { self[IslandAccentKey.self] }
         set { self[IslandAccentKey.self] = newValue }
-    }
-}
-
-/// Drag-to-move for the floating island, shared by the collapsed capsule and the shelf header.
-enum IslandMoveGesture {
-    static func make(model: IslandViewModel, actions: IslandActions) -> some Gesture {
-        DragGesture(minimumDistance: 3, coordinateSpace: .global)
-            .onChanged { value in model.dragOffset = value.translation }
-            .onEnded { value in
-                actions.moveFloating(value.translation)
-                model.dragOffset = nil
-            }
     }
 }
 

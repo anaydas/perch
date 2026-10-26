@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 enum IslandBackground: String, CaseIterable, Identifiable {
@@ -33,6 +34,8 @@ enum IslandStyle: String, CaseIterable, Identifiable {
     }
     /// Notch is joined to the screen edge; floating and orb sit a little away from it.
     var isAttached: Bool { self == .notch }
+    /// Floating and orb can be dragged anywhere, including onto another screen.
+    var isMovable: Bool { self == .floating || self == .orb }
 }
 
 /// Island colours: always dark, always light, or following macOS.
@@ -65,6 +68,8 @@ final class AppSettings: ObservableObject {
     @Published var style: IslandStyle { didSet { defaults.set(style.rawValue, forKey: Keys.style) } }
     /// Where the user dragged the floating island or orb: its centre as a fraction of the screen's
     /// usable area (0…1, from the top left), so it survives resolution changes. nil = default spot.
+    /// Which display the floating island or orb was dragged to (a stable display UUID). nil = default screen.
+    @Published var floatingScreen: String? { didSet { defaults.set(floatingScreen, forKey: Keys.floatingScreen) } }
     @Published var floatingCenter: CGPoint? {
         didSet {
             if let p = floatingCenter { defaults.set([p.x, p.y], forKey: Keys.floatingCenter) }
@@ -104,6 +109,7 @@ final class AppSettings: ObservableObject {
         static let position = "position"
         static let style = "style"
         static let floatingCenter = "floatingCenter"
+        static let floatingScreen = "floatingScreen"
         static let outline = "outline"
         static let tint = "tint"
         static let screenshots = "autoCatchScreenshots"
@@ -125,6 +131,7 @@ final class AppSettings: ObservableObject {
         let d = defaults
         position = IslandPosition(rawValue: d.string(forKey: Keys.position) ?? "") ?? .top
         style = IslandStyle(rawValue: d.string(forKey: Keys.style) ?? "") ?? .floating
+        floatingScreen = d.string(forKey: Keys.floatingScreen)
         if let p = d.array(forKey: Keys.floatingCenter) as? [Double], p.count == 2 {
             floatingCenter = CGPoint(x: p[0], y: p[1])
         } else {
@@ -162,4 +169,13 @@ final class AppSettings: ObservableObject {
         d.set(true, forKey: flag)
     }
 
+}
+
+extension NSScreen {
+    /// A display identifier that stays the same across restarts (the display's UUID).
+    var perchID: String? {
+        guard let number = deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber,
+              let uuid = CGDisplayCreateUUIDFromDisplayID(number.uint32Value)?.takeRetainedValue() else { return nil }
+        return CFUUIDCreateString(nil, uuid) as String
+    }
 }

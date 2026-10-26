@@ -34,6 +34,9 @@ final class IslandController {
     private var pressPoint: NSPoint = .zero
     private var pressItemID: UUID?
     private var multiDragStarted = false
+    /// Dragging the floating island or orb: where the mouse and the island's centre started (screen coordinates).
+    private var islandDrag: (mouse: NSPoint, center: NSPoint)?
+    private var islandDragging = false
     /// The app that was in front before Quick Look opened (handed the keyboard back afterwards).
     private var appBeforeQuickLook: NSRunningApplication?
     private var cancellables = Set<AnyCancellable>()
@@ -46,7 +49,6 @@ final class IslandController {
         let actions = IslandActions(
             togglePin: { [weak self] in self?.togglePinned() },
             openSettings: { [weak self] in self?.onOpenSettings?() },
-            moveFloating: { [weak self] offset in self?.moveFloating(by: offset) },
             quickLook: { [weak self] in self?.toggleQuickLook() },
             startSearch: { [weak self] in self?.startSearch() },
             endSearch: { [weak self] in self?.endSearch() },
@@ -111,6 +113,8 @@ final class IslandController {
                 self.multiDragStarted = false
                 self.pressPoint = event.locationInWindow
                 self.pressItemID = self.model.hoveredItemID
+                self.islandDragging = false
+                self.islandDrag = self.isOnDragArea(NSEvent.mouseLocation) ? (NSEvent.mouseLocation, self.islandCenterOnScreen()) : nil
                 if self.model.isExpanded {
                     // Take the keyboard (Esc, Space, ⌘A, ⌘C) without bringing Perch to the front.
                     if !self.panel.isKeyWindow { self.panel.makeKey() }
@@ -125,10 +129,21 @@ final class IslandController {
                 }
             case .leftMouseDragged:
                 self.pressMoved = true
+                if let drag = self.islandDrag {
+                    let mouse = NSEvent.mouseLocation
+                    if self.islandDragging || hypot(mouse.x - drag.mouse.x, mouse.y - drag.mouse.y) > 3 {
+                        self.islandDragging = true
+                        self.moveIsland(to: NSPoint(x: drag.center.x + mouse.x - drag.mouse.x, y: drag.center.y + mouse.y - drag.mouse.y))
+                    }
+                    return nil
+                }
                 if self.handleMultiDrag(event) { return nil }
             default:
+                if self.islandDragging { self.finishIslandDrag() }
                 if self.pressStartedOnIsland && !self.pressMoved && !self.model.isExpanded { self.expand() }
                 self.pressStartedOnIsland = false
+                self.islandDrag = nil
+                self.islandDragging = false
             }
             return event
         }
@@ -159,7 +174,10 @@ final class IslandController {
         // Picking a new position moves a dragged floating island back to that edge.
         settings.$position
             .dropFirst()
-            .sink { [weak settings] _ in settings?.floatingCenter = nil }
+            .sink { [weak settings] _ in
+                settings?.floatingScreen = nil
+                settings?.floatingCenter = nil
+            }
             .store(in: &cancellables)
 
         // Moving or restyling the island in Settings applies right away.
@@ -230,25 +248,60 @@ final class IslandController {
 
     private func positionPanel() {
         // At the top, prefer the built-in display with a notch; other edges use the main screen.
+        // A floating island or orb goes back to the screen it was dragged to, if it's still connected.
         let notched = NSScreen.screens.first { $0.safeAreaInsets.top > 0 }
         let preferred = settings.position == .top ? (notched ?? NSScreen.main) : (NSScreen.main ?? notched)
-        guard let target = preferred ?? NSScreen.screens.first else { return }
+        let saved = settings.style.isMovable ? NSScreen.screens.first { $0.perchID != nil && $0.perchID == settings.floatingScreen } : nil
+        guard let target = saved ?? preferred ?? NSScreen.screens.first else { return }
         screen = target
 
         var layout = IslandLayout.make(screen: target, position: settings.position, style: settings.style,
-                                       floatingFraction: settings.floatingCenter)
+                                       floatingFraction: saved != nil || settings.floatingScreen == nil ? settings.floatingCenter : nil)
         layout.collapsedExtraWidth = pillExtraWidth
         model.layout = layout
         panel.setFrame(model.layout.panelFrame(on: target), display: true)
     }
 
-    /// Saves where the floating island was dropped (as a fraction of the screen).
-    private func moveFloating(by offset: CGSize) {
+    // MARK: - Dragging the floating island or orb (across screens too)
+
+    /// The collapsed island when it's movable; the open shelf's header band when it's open.
+    private func isOnDragArea(_ mouse: NSPoint) -> Bool {
+        guard model.layout.isMovable, let screen else { return false }
+        let rect = model.layout.islandRect(on: screen, expanded: model.isExpanded)
+        if !model.isExpanded { return rect.insetBy(dx: -6, dy: -6).contains(mouse) }
+        let header = CGRect(x: rect.minX, y: rect.maxY - (model.layout.contentLeadInset + 40), width: rect.width,
+                            height: model.layout.contentLeadInset + 40)
+        return header.contains(mouse)
+    }
+
+    /// The collapsed island's centre, in screen coordinates.
+    private func islandCenterOnScreen() -> NSPoint {
+        guard let screen else { return .zero }
+        let v = screen.visibleFrame, c = model.layout.floatingCenter
+        return NSPoint(x: v.minX + c.x, y: v.maxY - c.y)
+    }
+
+    /// Follows the mouse; when it crosses onto another display, the panel moves to that display.
+    private func moveIsland(to center: NSPoint) {
+        let mouse = NSEvent.mouseLocation
+        if let target = NSScreen.screens.first(where: { $0.frame.contains(mouse) }), target !== screen {
+            screen = target
+            var layout = IslandLayout.make(screen: target, position: settings.position, style: settings.style, floatingFraction: nil)
+            layout.collapsedExtraWidth = pillExtraWidth
+            model.layout = layout
+            panel.setFrame(layout.panelFrame(on: target), display: true)
+        }
+        guard let screen else { return }
+        let v = screen.visibleFrame
+        model.layout.floatingCenter = CGPoint(x: center.x - v.minX, y: v.maxY - center.y)
+    }
+
+    /// Keeps the island fully on its screen and remembers the screen and spot.
+    private func finishIslandDrag() {
         let layout = model.layout
-        guard layout.isMovable else { return }
-        let moved = CGPoint(x: layout.floatingCenter.x + offset.width, y: layout.floatingCenter.y + offset.height)
-        let center = layout.clamped(moved, size: layout.collapsedSize)
-        model.layout.floatingCenter = center // no jump while settings round-trips
+        let center = layout.clamped(layout.floatingCenter, size: layout.collapsedSize)
+        model.layout.floatingCenter = center
+        settings.floatingScreen = screen?.perchID   // before the centre: setting the centre repositions
         settings.floatingCenter = layout.fraction(of: center)
     }
 

@@ -9,8 +9,6 @@ final class IslandViewModel: ObservableObject {
     @Published var showingClaude = false
     /// Where the island sits and how big it is, from the screen and the placement settings.
     @Published var layout = IslandLayout()
-    /// Floating/orb: how far the island has been dragged so far (nil when not dragging).
-    @Published var dragOffset: CGSize?
     /// Quick search (🔍 or ⌥⌘F): the search box is showing, and what's typed in it.
     @Published var isSearching = false
     @Published var searchText = ""
@@ -31,8 +29,6 @@ final class IslandViewModel: ObservableObject {
 struct IslandActions {
     var togglePin: () -> Void
     var openSettings: () -> Void
-    /// Floating/orb: the user finished dragging the island by this much.
-    var moveFloating: (CGSize) -> Void = { _ in }
     /// Show the selected (or hovered) cards in Quick Look.
     var quickLook: () -> Void = {}
     /// Open / close the search box.

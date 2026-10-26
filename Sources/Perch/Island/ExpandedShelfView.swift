@@ -233,9 +233,7 @@ struct ExpandedShelfView: View {
             .animation(.easeOut(duration: 0.15), value: model.isSearching)
         }
         .frame(height: 30)
-        // Floating/orb: drag the open shelf around by its header.
-        .contentShape(Rectangle())
-        .gesture(model.layout.isMovable ? IslandMoveGesture.make(model: model, actions: actions) : nil)
+        // Floating/orb: the open shelf can be dragged by its header (handled by the island controller).
         .help(model.layout.isMovable ? "Drag to move" : "")
     }
 
