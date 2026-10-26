@@ -60,7 +60,6 @@ struct ItemCardView: View {
             hovering = inside
             selection.onHover(inside)
         }
-        .onDrag { store.itemProvider(for: item) }
         .onTapGesture(count: 2) { store.open(item) }
         .simultaneousGesture(TapGesture().onEnded { selection.onTap() })
         .contextMenu { menu }

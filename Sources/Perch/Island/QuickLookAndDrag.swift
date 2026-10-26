@@ -28,7 +28,7 @@ final class QuickLookSource: NSObject, QLPreviewPanelDataSource, QLPreviewPanelD
     }
 }
 
-/// Source for dragging several selected cards out at once (SwiftUI's onDrag carries only one).
+/// Source for dragging cards out: one card, or several selected ones at once.
 final class MultiDragSource: NSObject, NSDraggingSource {
     var onEnd: () -> Void = {}
 

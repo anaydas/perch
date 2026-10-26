@@ -137,7 +137,7 @@ final class IslandController {
                     }
                     return nil
                 }
-                if self.handleMultiDrag(event) { return nil }
+                if self.handleCardDrag(event) { return nil }
             default:
                 if self.islandDragging { self.finishIslandDrag() }
                 if self.pressStartedOnIsland && !self.pressMoved && !self.model.isExpanded { self.expand() }
@@ -353,15 +353,19 @@ final class IslandController {
     /// Dragging a selected card while several are selected: drag them all, in one session.
     /// Returns true to keep the event from SwiftUI, whose own single-card drag would otherwise
     /// sometimes start first.
-    private func handleMultiDrag(_ event: NSEvent) -> Bool {
-        guard let pressed = pressItemID, model.selection.contains(pressed), model.selection.count > 1 else { return false }
+    /// Drags cards out with AppKit, as plain file URLs (or text), which every app accepts, Slack and
+    /// other Electron apps included. SwiftUI's onDrag hands out lazy item providers that they ignore.
+    private func handleCardDrag(_ event: NSEvent) -> Bool {
+        guard let pressed = pressItemID, let pressedItem = store.items.first(where: { $0.id == pressed }) else { return false }
         if multiDragStarted { return true }
         guard hypot(event.locationInWindow.x - pressPoint.x, event.locationInWindow.y - pressPoint.y) > 3 else {
-            return true // not far enough yet, but don't let SwiftUI start a single drag either
+            return true // not far enough yet
         }
         guard let view = panel.contentView else { return false }
         let point = view.convert(event.locationInWindow, from: nil)
-        let draggingItems = MultiDragSource.draggingItems(for: selectedItems(), store: store, at: point)
+        // Dragging a selected card takes the whole selection; any other card goes alone.
+        let items = model.selection.contains(pressed) && model.selection.count > 1 ? selectedItems() : [pressedItem]
+        let draggingItems = MultiDragSource.draggingItems(for: items, store: store, at: point)
         guard !draggingItems.isEmpty else { return false }
         multiDragStarted = true
         store.isDraggingOut = true

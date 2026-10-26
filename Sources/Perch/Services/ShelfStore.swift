@@ -254,20 +254,6 @@ final class ShelfStore: ObservableObject {
         lastOwnChangeCount = pb.changeCount
     }
 
-    /// What gets handed to other apps when a card is dragged out.
-    func itemProvider(for item: ShelfItem) -> NSItemProvider {
-        isDraggingOut = true // cleared by the island controller once the mouse is released
-        switch item.kind {
-        case .text:
-            return NSItemProvider(object: (item.text ?? "") as NSString)
-        case .image:
-            if let url = imageURL(for: item), let provider = NSItemProvider(contentsOf: url) { return provider }
-        case .file:
-            if let url = item.fileURL, let provider = NSItemProvider(contentsOf: url) { return provider }
-        }
-        return NSItemProvider()
-    }
-
     func open(_ item: ShelfItem) {
         switch item.kind {
         case .text: copy(item)
