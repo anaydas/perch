@@ -94,7 +94,8 @@ final class AppSettings: ObservableObject {
     /// Sound when a Claude Code session needs you or finishes a turn. Off by default.
     @Published var soundOnClaude: Bool { didSet { defaults.set(soundOnClaude, forKey: Keys.soundClaude) } }
     @Published var hideSensitive: Bool { didSet { defaults.set(hideSensitive, forKey: Keys.sensitive) } }
-    /// Master switch for everything Claude (sessions, usage, logo). Off: no Claude polling at all.
+    /// Master switch for everything Claude (sessions, usage, logo). Off by default, since many people
+    /// don't use Claude Code; off means no Claude polling at all.
     @Published var showClaude: Bool { didSet { defaults.set(showClaude, forKey: Keys.claude) } }
     @Published var showClaudeSessions: Bool { didSet { defaults.set(showClaudeSessions, forKey: Keys.claudeSessions) } }
     @Published var showClaudeUsage: Bool { didSet { defaults.set(showClaudeUsage, forKey: Keys.claudeUsage) } }
@@ -149,7 +150,7 @@ final class AppSettings: ObservableObject {
         hideSensitive = d.object(forKey: Keys.sensitive) as? Bool ?? true
         soundOnItemAdded = d.object(forKey: Keys.soundItem) as? Bool ?? false
         soundOnClaude = d.object(forKey: Keys.soundClaude) as? Bool ?? false
-        showClaude = d.object(forKey: Keys.claude) as? Bool ?? true
+        showClaude = d.object(forKey: Keys.claude) as? Bool ?? false
         showClaudeSessions = d.object(forKey: Keys.claudeSessions) as? Bool ?? true
         showClaudeUsage = d.object(forKey: Keys.claudeUsage) as? Bool ?? true
         expiryHours = d.object(forKey: Keys.expiry) as? Int ?? 72

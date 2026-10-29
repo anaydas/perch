@@ -16,6 +16,7 @@ enum ReadmeScreenshots {
         }
 
         let settings = AppSettings(defaults: defaults)
+        settings.showClaude = true
         settings.background = .solid // materials need a live window; solid renders the same everywhere
         settings.theme = theme
         let store = ShelfStore(settings: settings, directory: temp.appendingPathComponent("data"))

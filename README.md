@@ -43,7 +43,7 @@ switching windows.
 - **Clipboard history (optional).** Turn on Settings → Capture → "Add everything you copy to the shelf" and copied text, images and files land on it too (last 30 in the Recent tab). It's off by default so the shelf only holds what you add on purpose; ⌥⌘V pins whatever is on the clipboard any time.
 - **Secret blur.** Text that looks like an API key, token, private key or card number is blurred until you click it.
   Copies from password managers are never recorded.
-- **Claude Code sessions.** A small Claude mark on the island shows your running Claude Code sessions: it spins while one is working, pulses amber when one needs you, and is grey when they're idle. Open the island and click the Claude logo at the top right to switch the cards to your sessions, with full usage meters at the bottom (click it again to go back to the shelf). The ring around the logo fills with your 5-hour usage, so you can check it without switching. Clicking a desktop-app session opens it in the Claude app. Clicking a terminal session brings its terminal to the front and selects the exact tab in Terminal and iTerm2 (macOS asks once for permission). Right-click a terminal session to open a copy in the Claude app. Status comes from `~/.claude/sessions/`, an undocumented format that a Claude update could change. Turn off just this in Settings → Claude Code, or switch off Show Claude to hide everything Claude.
+- **Claude Code sessions** (off by default: turn on **Show Claude** in Settings → Claude Code). A small Claude mark on the island shows your running Claude Code sessions: it spins while one is working, pulses amber when one needs you, and is grey when they're idle. Open the island and click the Claude logo at the top right to switch the cards to your sessions, with full usage meters at the bottom (click it again to go back to the shelf). The ring around the logo fills with your 5-hour usage, so you can check it without switching. Clicking a desktop-app session opens it in the Claude app. Clicking a terminal session brings its terminal to the front and selects the exact tab in Terminal and iTerm2 (macOS asks once for permission). Right-click a terminal session to open a copy in the Claude app. Status comes from `~/.claude/sessions/`, an undocumented format that a Claude update could change. Turn off just this in Settings → Claude Code, or switch off Show Claude to hide everything Claude.
 - **Claude plan usage.** The Claude view shows your 5-hour and weekly limits in Claude orange: percent used, with a live countdown to each reset underneath its bar. The numbers come from a Claude Code status line script, `scripts/claude-statusline.sh`, installed to `~/.claude/perch/statusline.sh` and set as `statusLine` in `~/.claude/settings.json`. It updates whenever a Claude Code session gets a reply. When those numbers are missing or older, the row falls back to the Claude app's own usage history, which it only samples now and then; numbers older than an hour show greyed out with "as of". Turn off just this in Settings → Claude Code, or switch off Show Claude to hide everything Claude.
 - **Position and style.** In Settings → Placement, put the island on the top, left or right edge, and pick a style: Notch (joined to the edge), Floating (a capsule, the default) or Orb (a circle with the item count). Both can be dragged anywhere: drag the capsule or orb, or the open shelf by its header. With more than one display, drag it across to another screen. Perch remembers the screen and the spot, falls back to the main screen if that display is disconnected, and Settings → Reset position moves it back. Notch always stays on the built-in (notched) or main screen. Left and right open a tall side panel with a 2-column card grid that scrolls down. Clicking the collapsed island opens it.
 - **Looks.** Solid, Transparent or Glass background; None, Hairline, Accent, Glow, Double or Pulse outline in five colors.
@@ -100,7 +100,7 @@ All of these are also in the app: menu bar bird → **Keyboard Shortcuts…**, S
 
 To update, download the new release and replace the app in Applications (then repeat step 3). Your shelf and
 settings are kept. The Claude plan usage meters need the status line from Option 2's `--with-claude-usage`;
-Claude Code session cards work either way.
+Claude Code session cards work either way once you turn on **Show Claude** in Settings → Claude Code (it's off by default).
 
 ### Option 2: Build it with git
 
@@ -138,7 +138,9 @@ To get new versions later, run `./scripts/update.sh` (see [Update](#update)).
 
 ### Claude Code sessions and usage
 
-- **Sessions** need no setup: start a Claude Code session (in the Claude app or with `claude` in a terminal),
+- **Turn it on:** Claude is off by default. Switch on **Show Claude** in Perch → Settings → Claude Code
+  (`--with-claude-usage` switches it on for you).
+- **Sessions** need no other setup: start a Claude Code session (in the Claude app or with `claude` in a terminal),
   open the shelf and click the Claude logo next to "Shelf".
 - **Usage meters** come from a Claude Code status line. `--with-claude-usage` copies
   `scripts/claude-statusline.sh` to `~/.claude/perch/statusline.sh` and sets it as `statusLine` in

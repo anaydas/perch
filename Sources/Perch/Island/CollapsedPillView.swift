@@ -49,9 +49,16 @@ private struct HorizontalPillContent: View {
         HStack(spacing: 0) {
             HStack(spacing: -6) {
                 if items.isEmpty {
-                    Image(systemName: "tray")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(.secondary)
+                    // Empty shelf: say what it is, so the island isn't a bare capsule.
+                    HStack(spacing: 5) {
+                        Image(systemName: "tray")
+                            .font(.system(size: 11, weight: .semibold))
+                        Text(IslandLayout.emptyPillLabel)
+                            .font(.system(size: 11, weight: .semibold))
+                            .lineLimit(1)
+                            .fixedSize()
+                    }
+                    .foregroundStyle(.secondary)
                 }
                 ForEach(Array(items.prefix(3))) { item in
                     MiniThumb(item: item, store: store)
@@ -63,14 +70,13 @@ private struct HorizontalPillContent: View {
 
             HStack(spacing: 5) {
                 ClaudeIndicator(sessions: sessions)
-                if !items.isEmpty {
-                    Text("\(items.count)")
-                        .font(.system(size: 11, weight: .semibold))
-                        .monospacedDigit()
-                        .lineLimit(1)
-                        .fixedSize()
-                    Circle().fill(accent).frame(width: 5, height: 5)
-                }
+                Text("\(items.count)")
+                    .font(.system(size: 11, weight: .semibold))
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .fixedSize()
+                    .foregroundStyle(items.isEmpty ? .secondary : .primary)
+                Circle().fill(items.isEmpty ? Color.secondary.opacity(0.5) : accent).frame(width: 5, height: 5)
             }
             .fixedSize()
             .frame(maxWidth: .infinity, alignment: .trailing)
@@ -94,13 +100,12 @@ private struct VerticalPillContent: View {
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.secondary)
             }
-            if !items.isEmpty {
-                Text("\(items.count)")
-                    .font(.system(size: 11, weight: .semibold))
-                    .monospacedDigit()
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-            }
+            Text("\(items.count)")
+                .font(.system(size: 11, weight: .semibold))
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .foregroundStyle(items.isEmpty ? .secondary : .primary)
             ClaudeIndicator(sessions: sessions)
         }
         .padding(.vertical, 10)

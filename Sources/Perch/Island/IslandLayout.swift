@@ -187,18 +187,20 @@ struct IslandLayout: Equatable {
 
     /// Width the horizontal pill needs (besides the notch gap) to fit its content without
     /// squeezing: previews on the left; Claude logo, count and dot on the right.
+    /// Shown next to the tray icon while the shelf is empty.
+    static let emptyPillLabel = "Shelf"
+
     static func pillContentWidth(itemCount: Int, sessions: [ClaudeSession], notchGap: CGFloat) -> CGFloat {
         let previews = min(itemCount, 3)
-        let left: CGFloat = previews == 0 ? 14 : 16 + CGFloat(previews - 1) * 10
+        let label = (emptyPillLabel as NSString).size(withAttributes: [.font: NSFont.systemFont(ofSize: 11, weight: .semibold)]).width
+        let left: CGFloat = previews == 0 ? 14 + 5 + ceil(label) : 16 + CGFloat(previews - 1) * 10
         var right: CGFloat = 0
         if !sessions.isEmpty {
             right += 11
             if sessions.filter({ $0.status == .waiting }).count > 1 { right += 12 }
         }
-        if itemCount > 0 {
-            if right > 0 { right += 5 }
-            right += CGFloat(String(itemCount).count) * 7.5 + 5 + 5 // digits, spacing, dot
-        }
+        if right > 0 { right += 5 }
+        right += CGFloat(String(itemCount).count) * 7.5 + 5 + 5 // digits, spacing, dot (shown even at 0)
         let padding: CGFloat = 24, gap: CGFloat = 12
         // With a notch the two sides sit either side of it, so each side gets the wider one's room.
         let content = notchGap > 0 ? 2 * max(left, right) : left + gap + right

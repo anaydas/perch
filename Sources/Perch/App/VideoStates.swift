@@ -18,6 +18,7 @@ enum VideoStates {
         }
 
         let settings = AppSettings(defaults: defaults)
+        settings.showClaude = true
         settings.background = .solid
         // Dark theme with a subtle hairline outline
         settings.theme = .dark
