@@ -9,6 +9,9 @@ final class IslandViewModel: ObservableObject {
     @Published var showingClaude = false
     /// Where the island sits and how big it is, from the screen and the placement settings.
     @Published var layout = IslandLayout()
+    /// Floating/orb: where the panel's top-left corner is within the screen's visible area. Normally
+    /// zero (the panel covers the screen); while a card is dragged out the panel shrinks to the island.
+    @Published var panelOrigin: CGPoint = .zero
     /// Quick search (🔍 or ⌥⌘F): the search box is showing, and what's typed in it.
     @Published var isSearching = false
     @Published var searchText = ""

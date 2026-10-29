@@ -37,6 +37,8 @@ final class IslandController {
     /// Dragging the floating island or orb: where the mouse and the island's centre started (screen coordinates).
     private var islandDrag: (mouse: NSPoint, center: NSPoint)?
     private var islandDragging = false
+    /// The panel is shrunk to the island while a card is dragged out.
+    private var panelShrunk = false
     /// The app that was in front before Quick Look opened (handed the keyboard back afterwards).
     private var appBeforeQuickLook: NSRunningApplication?
     private var cancellables = Set<AnyCancellable>()
@@ -100,7 +102,10 @@ final class IslandController {
             self?.appBeforeQuickLook?.activate()
             self?.appBeforeQuickLook = nil
         }
-        multiDragSource.onEnd = { [weak store] in store?.isDraggingOut = false }
+        multiDragSource.onEnd = { [weak self] in
+            self?.store.isDraggingOut = false
+            self?.restorePanelAfterDragOut()
+        }
 
         // Presses on the island: a click opens it, a drag (floating style) moves it, and dragging
         // one of several selected cards drags them all.
@@ -259,6 +264,8 @@ final class IslandController {
                                        floatingFraction: saved != nil || settings.floatingScreen == nil ? settings.floatingCenter : nil)
         layout.collapsedExtraWidth = pillExtraWidth
         model.layout = layout
+        panelShrunk = false
+        model.panelOrigin = .zero
         panel.setFrame(model.layout.panelFrame(on: target), display: true)
     }
 
@@ -369,8 +376,29 @@ final class IslandController {
         guard !draggingItems.isEmpty else { return false }
         multiDragStarted = true
         store.isDraggingOut = true
+        panel.ignoresMouseEvents = true   // the drop belongs to whatever app is under the cursor
+        shrinkPanelForDragOut()
         view.beginDraggingSession(with: draggingItems, event: event, source: multiDragSource)
         return true
+    }
+
+    /// Floating/orb panels cover the whole screen, and macOS sends a drag that starts in a window to
+    /// that window wherever it covers, even when it lets clicks through. So while a card is dragged
+    /// out, the panel shrinks to just the island, and the app underneath gets the drop.
+    private func shrinkPanelForDragOut() {
+        guard model.layout.isMovable, let screen else { return }
+        let visible = screen.visibleFrame
+        let rect = model.layout.islandRect(on: screen, expanded: model.isExpanded).insetBy(dx: -24, dy: -24)
+        model.panelOrigin = CGPoint(x: rect.minX - visible.minX, y: visible.maxY - rect.maxY)
+        panelShrunk = true
+        panel.setFrame(rect, display: true)
+    }
+
+    private func restorePanelAfterDragOut() {
+        guard panelShrunk, let screen else { return }
+        panelShrunk = false
+        model.panelOrigin = .zero
+        panel.setFrame(model.layout.panelFrame(on: screen), display: true)
     }
 
     /// The card at a point in the panel (window coordinates), from the cards' laid-out frames.
@@ -441,6 +469,14 @@ final class IslandController {
         // leave it as it is, even if the cursor is briefly outside its old frame.
         if store.isDraggingOut && NSEvent.pressedMouseButtons == 0 {
             store.isDraggingOut = false
+            restorePanelAfterDragOut()
+        }
+        // Dragging a card out: let the drag pass through the panel to the app underneath.
+        // (Floating/orb panels cover the whole screen, so otherwise they'd swallow the drop.)
+        if store.isDraggingOut {
+            if !panel.ignoresMouseEvents { panel.ignoresMouseEvents = true }
+            leftAt = nil
+            return
         }
         if pressStartedOnIsland {
             if NSEvent.pressedMouseButtons == 0 { pressStartedOnIsland = false } else {

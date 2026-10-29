@@ -39,7 +39,7 @@ struct IslandView: View {
                 // Anywhere on screen: placed at its (possibly dragged) centre.
                 let center = layout.floatingCenter(expanded: expanded)
                 island
-                    .position(center)
+                    .position(x: center.x - model.panelOrigin.x, y: center.y - model.panelOrigin.y)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 island
