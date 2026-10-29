@@ -66,21 +66,46 @@ All of these are also in the app: menu bar bird → **Keyboard Shortcuts…**, S
 | ? | Show all keyboard shortcuts (in the open shelf) |
 | Right-click a card | Quick Look, Copy, Open, Show in Finder, Pin, Fix at the Front, Star, Remove (and "… N Items" for a selection) |
 
-## Download
+## Install
 
-**Mac only**: macOS 13 or newer, on Intel or Apple silicon.
+**Mac only**: macOS 13 or newer, on Intel or Apple silicon. There are two ways to install Perch:
+
+- **[Option 1: Download the app](#option-1-download-the-app-no-git-needed)**: no git or developer tools needed.
+- **[Option 2: Build it with git](#option-2-build-it-with-git)**: for developers, or to get changes before they're released.
+
+### Option 1: Download the app (no git needed)
 
 1. Download **Perch-x.y.z.zip** from the [latest release](https://github.com/anaydas/perch/releases/latest) and unzip it.
-2. Drag **Perch.app** into your **Applications** folder and open it.
-3. The first time, macOS says it can't check the app, because Perch isn't notarized by Apple. Let it through once:
-   - **macOS 15 or later:** System Settings → Privacy & Security → scroll down → **Open Anyway**
+2. Drag **Perch.app** into your **Applications** folder.
+3. Let macOS open it. Perch isn't notarized by Apple, so the first time macOS says *"Apple could not verify
+   "Perch" is free of malware"*. Choose **one** of these:
+
+   **a) With Terminal (no warning at all).** Before opening Perch, run:
+
+   ```bash
+   xattr -dr com.apple.quarantine /Applications/Perch.app
+   ```
+
+   This removes the "downloaded from the internet" flag, so run it *after* Perch.app is in Applications. Then
+   open Perch normally. (Already saw the warning? Run it anyway, then open Perch again.)
+
+   **b) With System Settings.** Open Perch, click **Done** (not "Move to Bin") on the warning, then:
+   - **macOS 15 or later:** System Settings → Privacy & Security → scroll down to *"Perch" was blocked* →
+     **Open Anyway** → enter your password → **Open Anyway**. (The button shows for about an hour after the
+     warning; if it's gone, open Perch again first.)
    - **macOS 13–14:** right-click Perch.app → **Open** → **Open**
 
-To update, download the new release and replace the app. Your shelf and settings are kept.
+   You only do this once. After that, Perch opens like any other app.
+4. **Allow access** when macOS asks for your **Documents** or **Desktop** folder (that's where screenshots are saved).
 
-## Install from source
+To update, download the new release and replace the app in Applications (then repeat step 3). Your shelf and
+settings are kept. The Claude plan usage meters need the status line from Option 2's `--with-claude-usage`;
+Claude Code session cards work either way.
 
-For developers, or to get changes before they're released. Needs macOS 13 or newer and Swift 5.9+ (Xcode 15+, or just the Command Line Tools: `xcode-select --install`).
+### Option 2: Build it with git
+
+Needs macOS 13 or newer and Swift 5.9+ (Xcode 15+, or just the Command Line Tools: `xcode-select --install`).
+macOS doesn't show the warning for an app you built yourself.
 
 1. **Clone the repo** anywhere you like:
 
