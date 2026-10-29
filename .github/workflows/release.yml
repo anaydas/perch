@@ -1,0 +1,72 @@
+# Publishes a downloadable Perch.app (Intel + Apple silicon) as a GitHub Release, built from main.
+#
+# To release: GitHub → Actions → Release → Run workflow → enter a version such as 0.1.0.
+# It tags main as v<version>, builds the app with that version, and attaches Perch-<version>.zip.
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version number, e.g. 0.1.0 (major.minor.patch)"
+        required: true
+
+permissions:
+  contents: write
+
+concurrency: release
+
+jobs:
+  release:
+    runs-on: macos-15
+    env:
+      VERSION: ${{ inputs.version }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Check the version
+        run: |
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Version must look like 1.2.3 (got '$VERSION')"
+            exit 1
+          fi
+          if gh release view "v$VERSION" >/dev/null 2>&1 || git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" >/dev/null; then
+            echo "::error::v$VERSION already exists. Pick a new version."
+            exit 1
+          fi
+
+      - name: Stamp the version into the app
+        run: |
+          plutil -replace CFBundleShortVersionString -string "$VERSION" Resources/Info.plist
+          plutil -replace CFBundleVersion -string "$GITHUB_RUN_NUMBER" Resources/Info.plist
+
+      - name: Build (Intel + Apple silicon)
+        run: ./scripts/build-app.sh --universal
+
+      - name: Zip
+        run: ditto -c -k --keepParent build/Perch.app "Perch-$VERSION.zip"
+
+      - name: Publish the release
+        run: |
+          cat > notes.md <<'EOF'
+          ## Install
+
+          1. Download **Perch-VERSION.zip** below and unzip it.
+          2. Drag **Perch.app** into your **Applications** folder.
+          3. Open it. The first time, macOS says it can't check the app (Perch isn't notarized by Apple):
+             - **macOS 15 or later:** System Settings → Privacy & Security → scroll down → **Open Anyway**
+             - **macOS 13–14:** right-click Perch.app → **Open** → **Open**
+
+          Needs macOS 13 or later. Works on Intel and Apple silicon Macs.
+
+          EOF
+          sed -i '' "s/VERSION/$VERSION/" notes.md
+          gh release create "v$VERSION" "Perch-$VERSION.zip" \
+            --target "$(git rev-parse HEAD)" \
+            --title "Perch $VERSION" \
+            --notes-file notes.md \
+            --generate-notes

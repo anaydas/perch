@@ -66,9 +66,21 @@ All of these are also in the app: menu bar bird → **Keyboard Shortcuts…**, S
 | ? | Show all keyboard shortcuts (in the open shelf) |
 | Right-click a card | Quick Look, Copy, Open, Show in Finder, Pin, Fix at the Front, Star, Remove (and "… N Items" for a selection) |
 
-## Install
+## Download
 
-Needs macOS 13 or newer and Swift 5.9+ (Xcode 15+, or just the Command Line Tools: `xcode-select --install`).
+**Mac only**: macOS 13 or newer, on Intel or Apple silicon.
+
+1. Download **Perch-x.y.z.zip** from the [latest release](https://github.com/anaydas/perch/releases/latest) and unzip it.
+2. Drag **Perch.app** into your **Applications** folder and open it.
+3. The first time, macOS says it can't check the app, because Perch isn't notarized by Apple. Let it through once:
+   - **macOS 15 or later:** System Settings → Privacy & Security → scroll down → **Open Anyway**
+   - **macOS 13–14:** right-click Perch.app → **Open** → **Open**
+
+To update, download the new release and replace the app. Your shelf and settings are kept.
+
+## Install from source
+
+For developers, or to get changes before they're released. Needs macOS 13 or newer and Swift 5.9+ (Xcode 15+, or just the Command Line Tools: `xcode-select --install`).
 
 1. **Clone the repo** anywhere you like:
 
