@@ -78,14 +78,6 @@ All of these are also in the app: menu bar bird → **Keyboard Shortcuts…**, S
 
 To update, download the new release and replace the app. Your shelf and settings are kept.
 
-### Versions
-
-Newest first. Release notes for each are on the [Releases page](https://github.com/anaydas/perch/releases).
-
-<!-- versions:start -->
-No releases yet.
-<!-- versions:end -->
-
 ## Install from source
 
 For developers, or to get changes before they're released. Needs macOS 13 or newer and Swift 5.9+ (Xcode 15+, or just the Command Line Tools: `xcode-select --install`).

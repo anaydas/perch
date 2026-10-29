@@ -27,7 +27,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: main
-          fetch-depth: 0
 
       - name: Check the version
         run: |
@@ -71,34 +70,3 @@ jobs:
             --title "Perch $VERSION" \
             --notes-file notes.md \
             --generate-notes
-
-      # Adds this version as a new row at the top of the README's Versions table (older rows are
-      # left as they are) and pushes it to main.
-      - name: Add the version to the README
-        run: |
-          git checkout -- Resources/Info.plist   # the stamped version is only for the build
-          git fetch --quiet origin main && git reset --quiet --hard origin/main   # main may have moved during the build
-          python3 - <<'EOF'
-          import os, datetime
-          repo, version = os.environ["GITHUB_REPOSITORY"], os.environ["VERSION"]
-          tag, today = f"v{version}", datetime.date.today().isoformat()
-          header = "| Version | Released |\n|---|---|\n"
-          row = f"| [{tag}](https://github.com/{repo}/releases/tag/{tag}) | {today} |\n"
-          readme = open("README.md").read()
-          start = "<!-- versions:start -->\n"
-          if start not in readme or "<!-- versions:end -->" not in readme:
-              raise SystemExit("README has no <!-- versions:start --> / <!-- versions:end --> markers")
-          if f"[{tag}]" in readme:
-              raise SystemExit(0)   # already listed
-          before, after = readme.split(start, 1)
-          if after.startswith(header):
-              after = header + row + after[len(header):]
-          else:   # first release: the table replaces the "No releases yet." line
-              after = header + row + after.split("<!-- versions:end -->", 1)[0].replace("No releases yet.\n", "") + "<!-- versions:end -->" + after.split("<!-- versions:end -->", 1)[1]
-          open("README.md", "w").write(before + start + after)
-          EOF
-          if git diff --quiet README.md; then exit 0; fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit --quiet -m "README: list Perch $VERSION" README.md
-          git push --quiet origin HEAD:main
