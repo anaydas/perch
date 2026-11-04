@@ -77,6 +77,16 @@ struct IslandView: View {
         }
     }
 
+    /// The edge the island grows from, for the contents' scale-in.
+    private var edgeAnchor: UnitPoint {
+        if layout.isMovable { return .center }
+        switch layout.position {
+        case .top: return .top
+        case .left: return .leading
+        case .right: return .trailing
+        }
+    }
+
     @ViewBuilder
     private var content: some View {
         if expanded {
@@ -84,14 +94,21 @@ struct IslandView: View {
                               claudeSessions: claudeSessions, claudeUsage: claudeUsage, actions: actions)
                 .padding(.top, layout.contentLeadInset)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                .transition(AnyTransition.opacity.animation(.easeOut(duration: 0.12)))
+                // In once the shape has mostly grown (fade and a slight scale from the edge); out quickly
+                // before it shrinks, so nothing is squeezed.
+                .transition(.asymmetric(
+                    insertion: .opacity.combined(with: .scale(scale: 0.96, anchor: edgeAnchor))
+                        .animation(.easeOut(duration: 0.22).delay(0.08)),
+                    removal: .opacity.animation(.easeIn(duration: 0.08))))
         } else {
             CollapsedIslandView(layout: layout,
                                 items: store.ordered,
                                 store: store,
                                 sessions: claudeSessions.sessions,
                                 flashToken: model.flashToken)
-                .transition(AnyTransition.opacity.animation(.easeOut(duration: 0.12)))
+                .transition(.asymmetric(
+                    insertion: .opacity.animation(.easeOut(duration: 0.18).delay(0.12)),
+                    removal: .opacity.animation(.easeIn(duration: 0.06))))
         }
     }
 }

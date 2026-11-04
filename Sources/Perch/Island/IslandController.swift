@@ -542,8 +542,8 @@ final class IslandController {
 
     private func expand() {
         guard !model.isExpanded else { return }
-        // Slightly under-damped spring: a small overshoot, but it settles quickly.
-        let animation: Animation = reduceMotion ? .easeInOut(duration: 0.15) : .spring(response: 0.28, dampingFraction: 0.75)
+        // A soft spring that settles without bouncing; the contents fade in once the shape has grown.
+        let animation: Animation = reduceMotion ? .easeInOut(duration: 0.15) : .spring(response: 0.36, dampingFraction: 0.86)
         withAnimation(animation) { model.isExpanded = true }
         NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
     }
@@ -551,21 +551,24 @@ final class IslandController {
     private func collapse() {
         guard model.isExpanded else { return }
         leftAt = nil
-        let animation: Animation = reduceMotion ? .easeInOut(duration: 0.12) : .easeOut(duration: 0.18)
+        let animation: Animation = reduceMotion ? .easeInOut(duration: 0.12) : .spring(response: 0.3, dampingFraction: 1)
         withAnimation(animation) {
             model.isExpanded = false
             model.isDropTargeted = false
         }
-        // Next time it opens, start on the shelf again, with nothing selected and no search.
-        model.showingClaude = false
-        model.isSearching = false
-        model.searchText = ""
-        model.selection = []
-        model.selectionAnchor = nil
-        // Give the keyboard back to the app you were in.
-        if panel.isKeyWindow && !hiddenForFullScreen {
-            panel.orderOut(nil)
-            panel.orderFrontRegardless()
+        // Once it has closed (not during the animation, which would make it flicker): start on the
+        // shelf next time, with nothing selected and no search, and give the keyboard back.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
+            guard let self, !self.model.isExpanded else { return }
+            self.model.showingClaude = false
+            self.model.isSearching = false
+            self.model.searchText = ""
+            self.model.selection = []
+            self.model.selectionAnchor = nil
+            if self.panel.isKeyWindow && !self.hiddenForFullScreen {
+                self.panel.orderOut(nil)
+                self.panel.orderFrontRegardless()
+            }
         }
     }
 
