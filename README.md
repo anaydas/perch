@@ -14,7 +14,7 @@ switching windows.
 
 <img src="docs/screenshots/shelf-open.png" alt="The open shelf with image, text, code and file cards">
 
-**Claude view.** Click the Claude logo for your running Claude Code sessions and plan usage. The ring around the logo shows 5-hour usage at a glance.
+**Claude view.** Click the Claude logo (next to Settings) for your running Claude Code sessions and plan usage. Hover the logo to see your 5-hour usage.
 
 <img src="docs/screenshots/claude-view.png" alt="The Claude view with three session cards, 5-hour and weekly usage meters, and a 30-day activity strip">
 
@@ -43,7 +43,7 @@ switching windows.
 - **Clipboard history (optional).** Turn on Settings → Capture → "Add everything you copy to the shelf" and copied text, images and files land on it too (last 30 in the Recent tab). It's off by default so the shelf only holds what you add on purpose; ⌥⌘V pins whatever is on the clipboard any time.
 - **Secret blur.** Text that looks like an API key, token, private key or card number is blurred until you click it.
   Copies from password managers are never recorded.
-- **Claude Code sessions** (off by default: turn on **Show Claude** in Settings → Claude Code). A small Claude mark on the island shows your running Claude Code sessions: it spins while one is working, pulses amber when one needs you, and is grey when they're idle. Open the island and click the Claude logo at the top right to switch the cards to your sessions, with full usage meters at the bottom (click it again to go back to the shelf). The ring around the logo fills with your 5-hour usage, so you can check it without switching. The header counts running sub-agents across all sessions ("2 sessions · 5 agents"), and each card shows its own count; hover a card to see what they're doing. Clicking a desktop-app session opens it in the Claude app. Clicking a terminal session brings its terminal to the front and selects the exact tab in Terminal and iTerm2 (macOS asks once for permission). Right-click a terminal session to open a copy in the Claude app. Status comes from `~/.claude/sessions/` and sub-agents from `~/.claude/projects/…/subagents/`, undocumented formats that a Claude update could change: sub-agents silent for 30 minutes aren't counted, and the count is hidden if the files stop looking as expected. Turn off just this in Settings → Claude Code, or switch off Show Claude to hide everything Claude.
+- **Claude Code sessions** (off by default: turn on **Show Claude** in Settings → Claude Code). A small Claude mark on the island shows your running Claude Code sessions: it spins while one is working, pulses amber when one needs you, and is grey when they're idle. Open the island and click the Claude logo next to Settings to switch the cards to your sessions, with full usage meters at the bottom (click it again to go back to the shelf). Hover the logo to see your 5-hour usage without switching. The header counts running sub-agents across all sessions ("2 sessions · 5 agents"), and each card shows its own count; hover a card to see what they're doing. Clicking a desktop-app session opens it in the Claude app. Clicking a terminal session brings its terminal to the front and selects the exact tab in Terminal and iTerm2 (macOS asks once for permission). Right-click a terminal session to open a copy in the Claude app. Status comes from `~/.claude/sessions/` and sub-agents from `~/.claude/projects/…/subagents/`, undocumented formats that a Claude update could change: sub-agents silent for 30 minutes aren't counted, and the count is hidden if the files stop looking as expected. Turn off just this in Settings → Claude Code, or switch off Show Claude to hide everything Claude.
 - **Claude Code activity.** A 30-day strip next to the usage meters shows how many replies Claude gave you each day; click it (or Sessions | Activity at the top right) for the Activity view: a 26-week calendar, or the Hours tab above it to see when in the week and day you use Claude, with totals beside it: replies, active days, your busiest day and your streak. It counts Claude's replies in Claude Code's session logs (`~/.claude/projects/`), sub-agents included. Claude Code deletes old logs after 30 days by default, so Perch keeps its own daily totals in `~/Library/Application Support/Perch/claude-activity.json`. Only Claude Code is counted, not chats on claude.ai. Turn it off in Settings → Claude Code → Activity heatmap.
 
   <img src="docs/screenshots/claude-activity.png" alt="The Claude Activity view: a 26-week calendar of replies, a Calendar or Hours picker, and totals" width="820">
@@ -123,7 +123,7 @@ macOS doesn't show the warning for an app you built yourself.
    ./scripts/install.sh
    ```
 
-   Or, to also get the **Claude plan usage meters** (5-hour and weekly limits, and the ring around the Claude logo):
+   Or, to also get the **Claude plan usage meters** (5-hour and weekly limits):
 
    ```bash
    ./scripts/install.sh --with-claude-usage

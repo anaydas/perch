@@ -186,7 +186,7 @@ struct ExpandedShelfView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// Left: title, count and the Claude logo. Right: search, pin, settings.
+    /// Left: title and count. Right: search, pin, the Claude button and settings.
     private var header: some View {
         HStack(spacing: 12) {
             // The side panel is narrow: while typing a search, the box takes the title's room.
@@ -208,14 +208,6 @@ struct ExpandedShelfView: View {
                         Text("Shelf")
                             .font(.system(size: 14, weight: .semibold))
                         countBadge(query.isEmpty ? "\(store.items.count)" : "\(visibleItems.count) of \(filteredItems.count)")
-                    }
-                    if claudeAvailable {
-                        ClaudeButton(active: showingClaude,
-                                     status: claudeSessions.sessions.first?.status ?? .idle,
-                                     fiveHourPercent: claudeUsage.usage?.currentFiveHourPercent) {
-                            model.showingClaude.toggle()
-                        }
-                        .padding(.leading, 4)
                     }
                 }
             }
@@ -260,6 +252,14 @@ struct ExpandedShelfView: View {
                            help: model.isPinned ? "Let the island close" : "Keep the island open (⌥Space)",
                            highlighted: model.isPinned,
                            action: actions.togglePin)
+                // The Claude button sits with the other buttons, just before Settings.
+                if claudeAvailable {
+                    ClaudeButton(active: showingClaude,
+                                 status: claudeSessions.sessions.first?.status ?? .idle,
+                                 fiveHourPercent: claudeUsage.usage?.currentFiveHourPercent) {
+                        model.showingClaude.toggle()
+                    }
+                }
                 IconButton(systemName: "gearshape", help: "Settings", highlighted: false, action: actions.openSettings)
             }
             .animation(.easeOut(duration: 0.15), value: model.isSearching)
@@ -327,8 +327,8 @@ extension ExpandedShelfView {
     }
 }
 
-/// Top-right Claude logo: switches between the shelf and the Claude view. The ring
-/// around it fills with the 5-hour usage, so it can be read without switching.
+/// The Claude logo next to Settings: switches between the shelf and the Claude view.
+/// Hovering it shows the 5-hour usage.
 private struct ClaudeButton: View {
     let active: Bool
     let status: ClaudeSession.Status
@@ -340,17 +340,7 @@ private struct ClaudeButton: View {
             ZStack {
                 RoundedRectangle(cornerRadius: 8)
                     .fill(active ? ClaudeLogo.orange.opacity(0.25) : Color.primary.opacity(0.1))
-                if let percent = fiveHourPercent {
-                    Circle()
-                        .stroke(Color.primary.opacity(0.15), lineWidth: 2)
-                        .frame(width: 22, height: 22)
-                    Circle()
-                        .trim(from: 0, to: max(0.02, min(percent, 100) / 100))
-                        .stroke(ClaudeLogo.orange, style: StrokeStyle(lineWidth: 2, lineCap: .round))
-                        .rotationEffect(.degrees(-90))
-                        .frame(width: 22, height: 22)
-                }
-                ClaudeMarkView(status: status, size: fiveHourPercent == nil ? 14 : 11)
+                ClaudeMarkView(status: status, size: 14)
             }
             .frame(width: 30, height: 30)
             .overlay(RoundedRectangle(cornerRadius: 8)
