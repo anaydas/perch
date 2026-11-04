@@ -180,7 +180,9 @@ struct ExpandedShelfView: View {
                             .font(.system(size: 14, weight: .semibold))
                         if settings.showClaudeSessions {
                             let count = claudeSessions.sessions.count
-                            countBadge(count == 1 ? "1 session" : "\(count) sessions")
+                            let agents = claudeSessions.sessions.runningAgentCount
+                            countBadge((count == 1 ? "1 session" : "\(count) sessions")
+                                       + (agents == 0 ? "" : agents == 1 ? " · 1 agent" : " · \(agents) agents"))
                         }
                     } else {
                         Image(systemName: "tray.full.fill")

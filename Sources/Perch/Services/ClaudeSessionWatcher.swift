@@ -22,6 +22,22 @@ struct ClaudeSession: Identifiable, Equatable {
     /// `local_…` id of the Claude desktop session, used for the claude:// deep link.
     let hostSessionId: String?
     let statusUpdatedAt: Date
+    /// Sub-agents this session is running right now. nil when their files don't look the way
+    /// Perch expects (an undocumented format), so no count is shown rather than a wrong one.
+    var agents: [ClaudeAgent]? = []
+}
+
+/// A sub-agent a session started (the Agent tool), from
+/// `~/.claude/projects/<project>/<session id>/subagents/agent-<id>.meta.json`.
+struct ClaudeAgent: Identifiable, Equatable {
+    let id: String
+    let description: String
+    let background: Bool
+}
+
+extension Array where Element == ClaudeSession {
+    /// Running sub-agents across all sessions whose agents could be read.
+    var runningAgentCount: Int { reduce(0) { $0 + ($1.agents?.count ?? 0) } }
 }
 
 /// Watches the per-process status files Claude Code writes for each running session.
@@ -34,6 +50,7 @@ final class ClaudeSessionWatcher: ObservableObject {
 
     private let settings: AppSettings
     private let directory: URL
+    private let projectsDirectory: URL
     private let queue = DispatchQueue(label: "Perch.ClaudeSessions", qos: .utility)
     private var timer: Timer?
 
@@ -43,6 +60,7 @@ final class ClaudeSessionWatcher: ObservableObject {
             .map { URL(fileURLWithPath: $0) }
             ?? FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".claude")
         directory = configDir.appendingPathComponent("sessions", isDirectory: true)
+        projectsDirectory = configDir.appendingPathComponent("projects", isDirectory: true)
     }
 
     /// Sample sessions for the README screenshots (the watcher isn't started then).
@@ -79,9 +97,13 @@ final class ClaudeSessionWatcher: ObservableObject {
             if !sessions.isEmpty { sessions = [] }
             return
         }
-        let directory = directory
+        let directory = directory, projects = projectsDirectory
         queue.async { [weak self] in
-            let found = Self.readSessions(in: directory)
+            let found = Self.readSessions(in: directory).map { session in
+                var session = session
+                session.agents = ClaudeAgentReader.runningAgents(sessionId: session.id, cwd: session.cwd, projects: projects)
+                return session
+            }
             DispatchQueue.main.async { self?.apply(found) }
         }
     }
@@ -149,6 +171,66 @@ final class ClaudeSessionWatcher: ObservableObject {
     private static func isAlive(_ pid: pid_t) -> Bool {
         kill(pid, 0) == 0 || errno == EPERM
     }
+}
+
+/// Reads which sub-agents a session is running. Claude Code writes a meta file per sub-agent when it
+/// starts and adds `"finished": true` when it ends (checked against Claude Code 2.1.306). Safeguards,
+/// since the format is undocumented:
+/// 1. Only sessions that are running are looked at (the watcher drops ended ones first).
+/// 2. An unfinished agent whose log hasn't changed for 30 minutes is treated as stale, not running.
+/// 3. Meta files without the fields seen in testing make the session's count unknown (nil), not a guess.
+enum ClaudeAgentReader {
+    static let staleAfter: TimeInterval = 30 * 60
+
+    static func runningAgents(sessionId: String, cwd: String, projects: URL, now: Date = Date()) -> [ClaudeAgent]? {
+        guard let folder = sessionFolder(sessionId: sessionId, cwd: cwd, projects: projects) else { return [] }
+        let subagents = folder.appendingPathComponent("subagents", isDirectory: true)
+        let fm = FileManager.default
+        guard let files = try? fm.contentsOfDirectory(at: subagents, includingPropertiesForKeys: [.contentModificationDateKey])
+        else { return [] } // no sub-agents started yet
+        let metas = files.filter { $0.lastPathComponent.hasSuffix(".meta.json") }
+        guard !metas.isEmpty else { return [] }
+
+        var running: [ClaudeAgent] = []
+        var recognised = 0
+        for meta in metas {
+            guard let data = try? Data(contentsOf: meta),
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let shape = json["requestShape"] as? String,
+                  json["finished"] == nil || json["finished"] is Bool else { continue }
+            recognised += 1
+            if json["finished"] as? Bool == true { continue }
+            // Safeguard 2: still marked as running, but nothing written for a long time.
+            let id = String(meta.lastPathComponent.dropLast(".meta.json".count))
+            let log = subagents.appendingPathComponent(id + ".jsonl")
+            let touched = [log, meta].compactMap { try? $0.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate }.max()
+            guard let touched, now.timeIntervalSince(touched) < staleAfter else { continue }
+            let description = (json["description"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+            running.append(ClaudeAgent(id: id, description: description?.isEmpty == false ? description! : "Sub-agent",
+                                       background: shape == "background"))
+        }
+        // Safeguard 3: there are meta files, but none look like the ones Perch knows.
+        return recognised == 0 ? nil : running
+    }
+
+    /// `<projects>/<cwd with every non-alphanumeric character as "-">/<session id>`, or a search by session id
+    /// (the session may have moved to another folder since it started).
+    private static func sessionFolder(sessionId: String, cwd: String, projects: URL) -> URL? {
+        let fm = FileManager.default
+        let encoded = String(cwd.map { $0.isASCII && ($0.isLetter || $0.isNumber) ? $0 : "-" })
+        let direct = projects.appendingPathComponent(encoded).appendingPathComponent(sessionId, isDirectory: true)
+        if fm.fileExists(atPath: direct.path) { return direct }
+        if let cached = cache[sessionId], fm.fileExists(atPath: cached.path) { return cached }
+        guard let projectDirs = try? fm.contentsOfDirectory(at: projects, includingPropertiesForKeys: nil) else { return nil }
+        for dir in projectDirs {
+            let candidate = dir.appendingPathComponent(sessionId, isDirectory: true)
+            if fm.fileExists(atPath: candidate.path) { cache[sessionId] = candidate; return candidate }
+        }
+        return nil
+    }
+
+    /// Only touched from the watcher's serial queue.
+    private static var cache: [String: URL] = [:]
 }
 
 /// Brings the terminal that runs a process to the front, and selects its exact tab

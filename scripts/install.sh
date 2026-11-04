@@ -39,8 +39,11 @@ echo "✓ Installed /Applications/Perch.app"
 
 if $with_usage; then
     echo "→ Setting up Claude usage meters…"
-    # Claude is off by default in Perch; this setup is for people who use it, so switch it on.
-    defaults write com.anaydas.Perch showClaude -bool true
+    # Claude is off by default in Perch; this setup is for people who use it, so switch it on,
+    # but only the first time: update.sh passes this option again, and a choice to turn it off stays.
+    if ! defaults read com.anaydas.Perch showClaude >/dev/null 2>&1; then
+        defaults write com.anaydas.Perch showClaude -bool true
+    fi
     if ! command -v jq >/dev/null; then
         echo "! jq not found (it ships with macOS 15; on older macOS: brew install jq). Skipping usage setup."
     else

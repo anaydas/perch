@@ -147,7 +147,10 @@ enum ReadmeScreenshots {
             ClaudeSession(id: "s1", pid: 1, title: "API refactor", cwd: "~/code/api", status: .waiting,
                           waitingFor: "input needed", source: .terminal, hostSessionId: nil, statusUpdatedAt: Date()),
             ClaudeSession(id: "s2", pid: 2, title: "Perch README", cwd: "~/code/perch", status: .working,
-                          waitingFor: nil, source: .app, hostSessionId: "local_1", statusUpdatedAt: Date()),
+                          waitingFor: nil, source: .app, hostSessionId: "local_1", statusUpdatedAt: Date(),
+                          agents: [ClaudeAgent(id: "a1", description: "Review the install docs", background: false),
+                                   ClaudeAgent(id: "a2", description: "Check screenshots", background: false),
+                                   ClaudeAgent(id: "a3", description: "Run the build", background: true)]),
             ClaudeSession(id: "s3", pid: 3, title: "Docs site", cwd: "~/code/docs", status: .idle,
                           waitingFor: nil, source: .app, hostSessionId: "local_2", statusUpdatedAt: Date()),
         ]

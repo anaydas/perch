@@ -158,7 +158,19 @@ struct SessionCardView: View {
         VStack(alignment: .leading, spacing: 3) {
             ZStack {
                 session.status.color.opacity(session.status == .idle ? 0.08 : 0.16)
-                ClaudeMarkView(status: session.status, size: 24)
+                // The sub-agent count sits under the logo, never on top of it (the logo spins).
+                VStack(spacing: 5) {
+                    ClaudeMarkView(status: session.status, size: 24)
+                    if let agents = session.agents, !agents.isEmpty {
+                        Text(agents.count == 1 ? "1 agent" : "\(agents.count) agents")
+                            .font(.system(size: 9, weight: .semibold))
+                            .monospacedDigit()
+                            .lineLimit(1)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 1.5)
+                            .background(Capsule().fill(session.status.color.opacity(0.25)))
+                    }
+                }
             }
             .frame(width: IslandMetrics.cardWidth - 12, height: 58)
             .clipShape(RoundedRectangle(cornerRadius: 7))
@@ -212,6 +224,10 @@ struct SessionCardView: View {
     private var helpText: String {
         var lines = [session.title, session.cwd]
         if let reason = session.waitingFor { lines.append("Waiting: \(reason)") }
+        if let agents = session.agents, !agents.isEmpty {
+            lines.append("Running sub-agents:")
+            lines += agents.map { "• \($0.description)" + ($0.background ? " (background)" : "") }
+        }
         return lines.joined(separator: "\n")
     }
 }
