@@ -37,7 +37,8 @@ cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 
 # Ad-hoc signature so macOS will launch it locally (extended attributes would make codesign refuse)
 xattr -cr "$APP"
-codesign --force --deep --sign - "$APP"
+# macOS sometimes re-adds Finder info right after (e.g. if the app was just run from build/): clear and retry once.
+codesign --force --deep --sign - "$APP" 2>/dev/null || { xattr -cr "$APP"; codesign --force --deep --sign - "$APP"; }
 
 echo "Built: $APP ($(lipo -archs "$APP/Contents/MacOS/Perch"))"
 echo "Run it with:  open \"$APP\""

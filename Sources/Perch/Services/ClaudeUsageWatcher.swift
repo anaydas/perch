@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 
 /// Claude plan usage: the 5-hour and weekly limits, as a percentage used.
@@ -27,10 +28,15 @@ struct ClaudeUsage: Equatable {
 /// only samples now and then. Both formats are someone else's, so bad data is skipped quietly.
 final class ClaudeUsageWatcher: ObservableObject {
     @Published private(set) var usage: ClaudeUsage?
+    /// Claude Code replies per day and hour, for the activity heatmap.
+    @Published private(set) var activity = ClaudeActivity()
 
     private let settings: AppSettings
     private let queue = DispatchQueue(label: "Perch.ClaudeUsage", qos: .utility)
     private var timer: Timer?
+    private var activityTimer: Timer?
+    private let activityScanner: ClaudeActivityScanner
+    private var settingsObserver: AnyCancellable?
 
     private let statusLineFile: URL
     private let appHistoryFile: URL
@@ -42,14 +48,41 @@ final class ClaudeUsageWatcher: ObservableObject {
             .map { URL(fileURLWithPath: $0) } ?? home.appendingPathComponent(".claude")
         statusLineFile = configDir.appendingPathComponent("perch/usage.json")
         appHistoryFile = home.appendingPathComponent("Library/Application Support/Claude/plan-usage-history.json")
+        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        activityScanner = ClaudeActivityScanner(
+            projects: configDir.appendingPathComponent("projects", isDirectory: true),
+            historyURL: support.appendingPathComponent("Perch/claude-activity.json"))
     }
 
     /// Sample usage for the README screenshots (the watcher isn't started then).
     func showSample(_ usage: ClaudeUsage) { self.usage = usage }
+    func showSample(_ activity: ClaudeActivity) { self.activity = activity }
 
     func start() {
         timer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in self?.poll() }
         poll()
+        // Logs grow while sessions run; each pass only reads what's new.
+        activityTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in self?.pollActivity() }
+        settingsObserver = settings.$showClaude.combineLatest(settings.$showClaudeActivity)
+            .dropFirst()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.pollActivity() }
+        pollActivity()
+    }
+
+    private func pollActivity() {
+        guard settings.showClaude && settings.showClaudeActivity else {
+            if activity != ClaudeActivity() { activity = ClaudeActivity() }
+            return
+        }
+        let scanner = activityScanner
+        queue.async { [weak self] in
+            let found = scanner.scan()
+            DispatchQueue.main.async {
+                guard let self, found != self.activity else { return }
+                self.activity = found
+            }
+        }
     }
 
     private func poll() {

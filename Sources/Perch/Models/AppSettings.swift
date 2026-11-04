@@ -99,6 +99,8 @@ final class AppSettings: ObservableObject {
     @Published var showClaude: Bool { didSet { defaults.set(showClaude, forKey: Keys.claude) } }
     @Published var showClaudeSessions: Bool { didSet { defaults.set(showClaudeSessions, forKey: Keys.claudeSessions) } }
     @Published var showClaudeUsage: Bool { didSet { defaults.set(showClaudeUsage, forKey: Keys.claudeUsage) } }
+    /// The activity heatmap (30-day strip and the Activity view), from Claude Code's session logs.
+    @Published var showClaudeActivity: Bool { didSet { defaults.set(showClaudeActivity, forKey: Keys.claudeActivity) } }
     /// 0 = never expire.
     @Published var expiryHours: Int { didSet { defaults.set(expiryHours, forKey: Keys.expiry) } }
 
@@ -122,6 +124,7 @@ final class AppSettings: ObservableObject {
         static let claude = "showClaude"
         static let claudeSessions = "showClaudeSessions"
         static let claudeUsage = "showClaudeUsage"
+        static let claudeActivity = "showClaudeActivity"
         static let expiry = "expiryHours"
     }
 
@@ -153,6 +156,7 @@ final class AppSettings: ObservableObject {
         showClaude = d.object(forKey: Keys.claude) as? Bool ?? false
         showClaudeSessions = d.object(forKey: Keys.claudeSessions) as? Bool ?? true
         showClaudeUsage = d.object(forKey: Keys.claudeUsage) as? Bool ?? true
+        showClaudeActivity = d.object(forKey: Keys.claudeActivity) as? Bool ?? true
         expiryHours = d.object(forKey: Keys.expiry) as? Int ?? 72
     }
 

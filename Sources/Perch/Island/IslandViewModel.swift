@@ -7,6 +7,10 @@ final class IslandViewModel: ObservableObject {
     @Published var filter: ShelfFilter = .all
     /// The island shows Claude sessions and usage instead of shelf cards.
     @Published var showingClaude = false
+    /// In the Claude view: the activity heatmap instead of the session cards.
+    @Published var showingClaudeActivity = false
+    /// Which map the Activity view shows.
+    @Published var claudeActivityMap: ClaudeActivityMap = .calendar
     /// Where the island sits and how big it is, from the screen and the placement settings.
     @Published var layout = IslandLayout()
     /// Floating/orb: where the panel's top-left corner is within the screen's visible area. Normally

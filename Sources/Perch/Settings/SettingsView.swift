@@ -101,6 +101,7 @@ struct SettingsView: View {
                 Group {
                     Toggle("Running Claude Code sessions", isOn: $settings.showClaudeSessions)
                     Toggle("Plan usage (5-hour and weekly limits)", isOn: $settings.showClaudeUsage)
+                    Toggle("Activity heatmap (from Claude Code's history)", isOn: $settings.showClaudeActivity)
                     Toggle("Play a sound when a session needs you or finishes", isOn: $settings.soundOnClaude)
                         .onChange(of: settings.soundOnClaude) { on in if on { Sounds.play(.claudeNeedsYou) } }
                 }

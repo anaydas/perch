@@ -237,6 +237,9 @@ struct ClaudeUsageBar: View {
     let usage: ClaudeUsage
     /// Side panel: meters on top of each other instead of side by side.
     var stacked = false
+    /// Claude view footer: one line per meter (5-hour above weekly), the reset countdown after the
+    /// percentage, so the two lines stay short next to the activity strip.
+    var compact = false
 
     private var isStale: Bool { Date().timeIntervalSince(usage.updatedAt) > 3600 }
 
@@ -245,7 +248,12 @@ struct ClaudeUsageBar: View {
     var body: some View {
         // Re-render every 30s so the countdowns and timelines move.
         TimelineView(.periodic(from: .now, by: 30)) { context in
-            if stacked {
+            if compact {
+                VStack(alignment: .leading, spacing: 8) {
+                    if let five = usage.fiveHour { line("5-hour", five, now: context.date) }
+                    if let week = usage.weekly { line("Weekly", week, now: context.date) }
+                }
+            } else if stacked {
                 VStack(alignment: .leading, spacing: 6) {
                     if let five = usage.fiveHour { meter("5-hour", five, now: context.date) }
                     if let week = usage.weekly { meter("Weekly", week, now: context.date) }
@@ -271,6 +279,40 @@ struct ClaudeUsageBar: View {
         .help(helpText)
     }
 
+    /// One line: label, bar, percentage and the time to the reset (the reset time itself is in the tooltip).
+    private func line(_ label: String, _ window: ClaudeUsage.Window, now: Date) -> some View {
+        let didReset = window.resetsAt.map { $0 < now } ?? false
+        let percent = didReset ? 0 : min(max(window.usedPercent, 0), 100)
+        let width = Self.barWidth
+        return HStack(spacing: 8) {
+            HStack(spacing: 6) {
+                ClaudeLogo.markIcon(size: 9)
+                Text(label).foregroundStyle(.secondary)
+            }
+            .frame(width: 62, alignment: .leading)
+            ZStack(alignment: .leading) {
+                Capsule().fill(Color.primary.opacity(0.12))
+                Capsule().fill(ClaudeLogo.orange)
+                    .frame(width: max(percent > 0 ? 4 : 0, width * percent / 100))
+            }
+            .frame(width: width, height: 5)
+            Text("\(Int(percent.rounded()))%")
+                .monospacedDigit()
+                .fontWeight(.semibold)
+                .frame(width: 34, alignment: .trailing)
+            if let resets = window.resetsAt, !didReset {
+                Text("resets in \(Self.countdown(to: resets, now: now))")
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+                    .fixedSize()
+                    .help("Resets \(Self.resetText(resets))")
+            } else if didReset {
+                Text("reset").foregroundStyle(.secondary)
+            }
+        }
+        .frame(height: 13)
+    }
+
     /// Label, orange usage bar and percentage, with the reset countdown underneath the bar.
     private func meter(_ label: String, _ window: ClaudeUsage.Window, now: Date) -> some View {
         // A window whose reset time has passed has started over.
@@ -294,12 +336,14 @@ struct ClaudeUsageBar: View {
                     Text("\(Int(percent.rounded()))%")
                         .monospacedDigit()
                         .fontWeight(.semibold)
+                        .fixedSize()
                 }
                 .frame(height: 13)
                 if let resets = window.resetsAt, !didReset {
                     Text("Resets in \(Self.countdown(to: resets, now: now)) · \(Self.resetText(resets))")
                         .font(.system(size: 9.5))
                         .monospacedDigit()
+                        .fixedSize()
                         .foregroundStyle(.secondary)
                 } else if didReset {
                     Text("Reset")

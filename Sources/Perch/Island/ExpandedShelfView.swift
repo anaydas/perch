@@ -36,7 +36,15 @@ struct ExpandedShelfView: View {
 
     /// The Claude logo (top right) is there when any Claude feature is on.
     private var claudeAvailable: Bool {
-        settings.showClaude && (settings.showClaudeSessions || settings.showClaudeUsage)
+        settings.showClaude && (settings.showClaudeSessions || settings.showClaudeUsage || settings.showClaudeActivity)
+    }
+    /// Claude view: the Activity heatmap instead of the session cards (also when session cards are off).
+    private var showingActivity: Bool {
+        settings.showClaudeActivity && (model.showingClaudeActivity || !settings.showClaudeSessions)
+    }
+    /// The Sessions | Activity switch, when both are on.
+    private var claudeViewPicker: some View {
+        SlidingSwitch(selection: $model.showingClaudeActivity, options: [(false, "Sessions"), (true, "Activity")])
     }
     /// The island shows the Claude view (sessions + usage) instead of the shelf.
     private var showingClaude: Bool { model.showingClaude && claudeAvailable }
@@ -50,14 +58,24 @@ struct ExpandedShelfView: View {
             if vertical && !showingClaude && settings.showFilters {
                 filterMenu
             }
+            if vertical && showingClaude && settings.showClaudeActivity && settings.showClaudeSessions {
+                claudeViewPicker
+            }
 
             Group {
-                if showingClaude {
-                    if claudeSessions.sessions.isEmpty {
-                        EmptyClaudeView(sessionsEnabled: settings.showClaudeSessions)
-                    } else {
-                        cards(claudeSessions.sessions) { SessionCardView(session: $0, watcher: claudeSessions) }
+                // Sessions and Activity cross-fade (the switch animates the change).
+                if showingClaude && showingActivity {
+                    ClaudeActivityView(activity: claudeUsage.activity, map: $model.claudeActivityMap, stacked: vertical)
+                        .transition(.opacity)
+                } else if showingClaude {
+                    Group {
+                        if claudeSessions.sessions.isEmpty {
+                            EmptyClaudeView(sessionsEnabled: settings.showClaudeSessions)
+                        } else {
+                            cards(claudeSessions.sessions) { SessionCardView(session: $0, watcher: claudeSessions) }
+                        }
                     }
+                    .transition(.opacity)
                 } else if visibleItems.isEmpty && !query.isEmpty {
                     NoMatchesView(query: query)
                 } else if visibleItems.isEmpty {
@@ -218,6 +236,9 @@ struct ExpandedShelfView: View {
             }
 
             HStack(spacing: 6) {
+                if !vertical && showingClaude && settings.showClaudeActivity && settings.showClaudeSessions {
+                    claudeViewPicker.frame(width: 160).padding(.trailing, 6)
+                }
                 if !showingClaude {
                     if model.isSearching {
                         // Opens in place of the search button; a click anywhere else turns it back.
@@ -260,8 +281,8 @@ struct ExpandedShelfView: View {
     /// Shelf: hints. Claude view: the full usage meters.
     @ViewBuilder
     private var footer: some View {
-        if showingClaude, let usage = claudeUsage.usage {
-            ClaudeUsageBar(usage: usage, stacked: vertical)
+        if showingClaude && (claudeUsage.usage != nil || settings.showClaudeActivity) {
+            claudeFooter
         } else if vertical {
             Text(showingClaude ? "Click a session to open it" : "Drag in to pin · drag out to use")
                 .font(.system(size: 10.5))
@@ -277,6 +298,31 @@ struct ExpandedShelfView: View {
             }
             .font(.system(size: 10.5))
             .foregroundStyle(.secondary)
+        }
+    }
+}
+
+extension ExpandedShelfView {
+    /// Claude view footer: the usage meters, and the 30-day activity strip (which opens the Activity view).
+    @ViewBuilder
+    fileprivate var claudeFooter: some View {
+        // Hidden while the Activity view is open: the full calendar is on screen then.
+        let strip = settings.showClaudeActivity && !showingActivity
+            ? ClaudeActivityStrip(activity: claudeUsage.activity) {
+                withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) { model.showingClaudeActivity = true }
+            }
+            : nil
+        if vertical {
+            VStack(alignment: .leading, spacing: 8) {
+                if let usage = claudeUsage.usage { ClaudeUsageBar(usage: usage, stacked: true) }
+                strip
+            }
+        } else {
+            HStack(alignment: .bottom, spacing: 16) {
+                if let usage = claudeUsage.usage { ClaudeUsageBar(usage: usage, compact: true) }
+                Spacer(minLength: 0)
+                strip
+            }
         }
     }
 }

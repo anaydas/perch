@@ -25,6 +25,7 @@ enum ReadmeScreenshots {
         addSampleItems(to: store, files: temp.appendingPathComponent("files"))
         sessions.showSample(sampleSessions)
         usage.showSample(sampleUsage)
+        usage.showSample(sampleActivity)
 
         // File cards load their size and icon in the background; let that finish.
         store.items.forEach { _ = store.info(for: $0) }
@@ -52,7 +53,7 @@ enum ReadmeScreenshots {
         }
 
         func scene(width: CGFloat, height: CGFloat, position: IslandPosition = .top, style: IslandStyle = .floating,
-                   expanded: Bool, claude: Bool = false, search: String? = nil) -> some View {
+                   expanded: Bool, claude: Bool = false, activity: Bool = false, search: String? = nil) -> some View {
             var layout = IslandLayout(position: position, style: style)
             layout.visibleFrame = CGRect(x: 0, y: 0, width: width, height: height)
             layout.collapsedExtraWidth = IslandLayout.pillContentWidth(itemCount: store.items.count,
@@ -62,6 +63,7 @@ enum ReadmeScreenshots {
             model.layout = layout
             model.isExpanded = expanded
             model.showingClaude = claude
+            model.showingClaudeActivity = activity
             if let search { model.isSearching = true; model.searchText = search }
             let island = IslandView(model: model, store: store, settings: settings,
                                     claudeSessions: sessions, claudeUsage: usage,
@@ -74,6 +76,7 @@ enum ReadmeScreenshots {
         save("shelf-collapsed.png", scene(width: 760, height: 64, expanded: false))
         save("shelf-open.png", scene(width: 820, height: 266, expanded: true))
         save("claude-view.png", scene(width: 820, height: 266, expanded: true, claude: true))
+        save("claude-activity.png", scene(width: 820, height: 266, expanded: true, claude: true, activity: true))
         save("side-panel.png", scene(width: 420, height: 560, position: .left, expanded: true))
         save("search.png", scene(width: 820, height: 266, expanded: true, search: "perch"))
         save("styles.png", stylesStrip(store: store, settings: settings, sessions: sessions, usage: usage))
@@ -154,6 +157,30 @@ enum ReadmeScreenshots {
             ClaudeSession(id: "s3", pid: 3, title: "Docs site", cwd: "~/code/docs", status: .idle,
                           waitingFor: nil, source: .app, hostSessionId: "local_2", statusUpdatedAt: Date()),
         ]
+    }
+
+    /// Made-up but plausible: weekdays busier than weekends, mostly afternoons and some late nights.
+    static var sampleActivity: ClaudeActivity {
+        var activity = ClaudeActivity()
+        var seed: UInt64 = 42
+        func random() -> Double {
+            seed = seed &* 6364136223846793005 &+ 1442695040888963407
+            return Double(seed >> 33) / Double(1 << 31)
+        }
+        let today = Calendar.current.startOfDay(for: Date())
+        for back in 0..<(16 * 7) {
+            guard let day = Calendar.current.date(byAdding: .day, value: -back, to: today) else { continue }
+            let weekend = Calendar.current.isDateInWeekend(day)
+            guard random() > (weekend ? 0.6 : 0.2) else { continue }
+            var hours = Array(repeating: 0, count: 24)
+            for hour in 0..<24 {
+                let busy: Double = (13...17).contains(hour) ? 1 : (9...12).contains(hour) ? 0.6
+                    : (21...23).contains(hour) || hour <= 1 ? 0.45 : 0.05
+                if random() < busy { hours[hour] = Int(random() * (weekend ? 14 : 30) * busy) + 1 }
+            }
+            activity.days[ClaudeActivity.key(day)] = hours
+        }
+        return activity
     }
 
     static var sampleUsage: ClaudeUsage {
