@@ -4,6 +4,7 @@
 # It tags main as v<version>, builds the app with that version, attaches Perch-<version>.zip,
 # and updates the Homebrew cask in anaydas/homebrew-perch.
 name: Release
+run-name: Release ${{ inputs.version }}
 
 on:
   workflow_dispatch:
