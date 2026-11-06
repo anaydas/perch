@@ -6,25 +6,9 @@ A Dynamic Island–style shelf for the MacBook notch. Pin screenshots, text and 
 at the top of the screen so you can copy or drag them into any app without
 switching windows.
 
-## Screenshots
+<img src="docs/screenshots/perch.gif" alt="Perch in action: hovering opens the shelf, a screenshot of a dashboard is taken and flies onto the shelf, it's dragged into a chat, then the Claude view shows sessions, usage and the activity heatmap by day and by hour">
 
-<img src="docs/screenshots/shelf-collapsed.png" alt="The collapsed floating island below the menu bar, showing recent items, the Claude logo and the item count">
-
-**Hover or click to open the shelf.** Your latest screenshots, text and files as cards, newest first. Pinned cards stay at the front.
-
-<img src="docs/screenshots/shelf-open.png" alt="The open shelf with image, text, code and file cards">
-
-**Claude view.** Click the Claude logo (next to Settings) for your running Claude Code sessions and plan usage. Hover the logo to see your 5-hour usage.
-
-<img src="docs/screenshots/claude-view.png" alt="The Claude view with three session cards, 5-hour and weekly usage meters, and a 30-day activity strip">
-
-**Styles and placement.** Notch, Floating (the default) or Orb, on the top, left or right edge. Floating and Orb can be dragged anywhere, even onto another display.
-
-<img src="docs/screenshots/styles.png" alt="The three collapsed styles side by side: Notch, Floating and Orb">
-
-<img src="docs/screenshots/side-panel.png" width="320" alt="The shelf as a tall side panel on the left edge, with a two-column card grid">
-
-<sub>Screenshots are drawn from the app's own views with sample data: `build/Perch.app/Contents/MacOS/Perch --render-screenshots docs/screenshots`.</sub>
+<sub>Drawn from the app's own views with sample data, by `scripts/make-gif.swift`.</sub>
 
 ## Features
 
@@ -45,8 +29,6 @@ switching windows.
   Copies from password managers are never recorded.
 - **Claude Code sessions** (off by default: turn on **Show Claude** in Settings → Claude Code). A small Claude mark on the island shows your running Claude Code sessions: it spins while one is working, pulses amber when one needs you, and is grey when they're idle. Open the island and click the Claude logo next to Settings to switch the cards to your sessions, with full usage meters at the bottom (click it again to go back to the shelf). Hover the logo to see your 5-hour usage without switching. The header counts running sub-agents across all sessions ("2 sessions · 5 agents"), and each card shows its own count; hover a card to see what they're doing. Clicking a desktop-app session opens it in the Claude app. Clicking a terminal session brings its terminal to the front and selects the exact tab in Terminal and iTerm2 (macOS asks once for permission). Right-click a terminal session to open a copy in the Claude app. Status comes from `~/.claude/sessions/` and sub-agents from `~/.claude/projects/…/subagents/`, undocumented formats that a Claude update could change: sub-agents silent for 30 minutes aren't counted, and the count is hidden if the files stop looking as expected. Turn off just this in Settings → Claude Code, or switch off Show Claude to hide everything Claude.
 - **Claude Code activity.** A 30-day strip next to the usage meters shows how many replies Claude gave you each day; click it (or Sessions | Activity at the top right) for the Activity view: a 26-week calendar, or the Hours tab above it to see when in the week and day you use Claude, with totals beside it: replies, active days, your busiest day and your streak. It counts Claude's replies in Claude Code's session logs (`~/.claude/projects/`), sub-agents included. Claude Code deletes old logs after 30 days by default, so Perch keeps its own daily totals in `~/Library/Application Support/Perch/claude-activity.json`. Only Claude Code is counted, not chats on claude.ai. Turn it off in Settings → Claude Code → Activity heatmap.
-
-  <img src="docs/screenshots/claude-activity.png" alt="The Claude Activity view: a 26-week calendar of replies, a Calendar or Hours picker, and totals" width="820">
 - **Claude plan usage.** The Claude view shows your 5-hour and weekly limits in Claude orange: percent used, with a live countdown to each reset underneath its bar. The numbers come from a Claude Code status line script, `scripts/claude-statusline.sh`, installed to `~/.claude/perch/statusline.sh` and set as `statusLine` in `~/.claude/settings.json`. It updates whenever a Claude Code session gets a reply. When those numbers are missing or older, the row falls back to the Claude app's own usage history, which it only samples now and then; numbers older than an hour show greyed out with "as of". Turn off just this in Settings → Claude Code, or switch off Show Claude to hide everything Claude.
 - **Position and style.** In Settings → Placement, put the island on the top, left or right edge, and pick a style: Notch (joined to the edge), Floating (a capsule, the default) or Orb (a circle with the item count). Both can be dragged anywhere: drag the capsule or orb, or the open shelf by its header. With more than one display, drag it across to another screen. Perch remembers the screen and the spot, falls back to the main screen if that display is disconnected, and Settings → Reset position moves it back. Notch always stays on the built-in (notched) or main screen. Left and right open a tall side panel with a 2-column card grid that scrolls down. Clicking the collapsed island opens it.
 - **Looks.** Solid, Transparent or Glass background; None, Hairline, Accent, Glow, Double or Pulse outline in five colors.

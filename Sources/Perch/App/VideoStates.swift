@@ -31,6 +31,7 @@ enum VideoStates {
         store.items.filter(\.isStarred).forEach(store.toggleStar)
         sessions.showSample(ReadmeScreenshots.sampleSessions)
         usage.showSample(ReadmeScreenshots.sampleUsage)
+        usage.showSample(ReadmeScreenshots.sampleActivity)
         settle(store)
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
 
@@ -54,7 +55,7 @@ enum VideoStates {
 
         /// Just the island, with room around it for the outline glow.
         func island(_ name: String, style: IslandStyle = .floating, position: IslandPosition = .top, expanded: Bool,
-                    claude: Bool = false, search: String? = nil, selection: Set<UUID> = []) {
+                    claude: Bool = false, activity: ClaudeActivityMap? = nil, search: String? = nil, selection: Set<UUID> = []) {
             let pad: CGFloat = 24
             var layout = IslandLayout(position: position, style: style)
             layout.visibleFrame = CGRect(x: 0, y: 0, width: 1000, height: 600)
@@ -68,6 +69,7 @@ enum VideoStates {
             model.layout = layout
             model.isExpanded = expanded
             model.showingClaude = claude
+            if let activity { model.showingClaudeActivity = true; model.claudeActivityMap = activity }
             model.selection = selection
             if let search { model.isSearching = true; model.searchText = search }
             let view = IslandView(model: model, store: store, settings: settings, claudeSessions: sessions,
@@ -83,6 +85,7 @@ enum VideoStates {
         store.addImage(dashboardImage(), title: "Screenshot 9.41.12 AM")
         settle(store)
         island("shelf-1.png", expanded: true)
+        island("pill-1.png", expanded: false)
 
         // 3. A screen recording lands (a short sample video that ships with macOS)
         let sampleVideo = URL(fileURLWithPath: "/System/Library/PrivateFrameworks/Slideshows.framework/Versions/A/Resources/Content/Styles/KenBurns.mrbStyle/Contents/Resources/Preview.mov")
@@ -112,6 +115,8 @@ enum VideoStates {
         island("shelf-select.png", expanded: true, selection: firstThree)
         island("search.png", expanded: true, search: "q3")
         island("claude.png", expanded: true, claude: true)
+        island("claude-calendar.png", expanded: true, claude: true, activity: .calendar)
+        island("claude-hours.png", expanded: true, claude: true, activity: .hours)
 
         // Fixed at the front and starred
         if let notes = store.items.first(where: { $0.title.hasPrefix("Ship Perch") }) { store.toggleFixed(notes) }
