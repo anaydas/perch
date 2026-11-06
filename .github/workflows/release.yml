@@ -1,7 +1,8 @@
 # Publishes a downloadable Perch.app (Intel + Apple silicon) as a GitHub Release, built from main.
 #
 # To release: GitHub → Actions → Release → Run workflow → enter a version such as 0.1.0.
-# It tags main as v<version>, builds the app with that version, and attaches Perch-<version>.zip.
+# It tags main as v<version>, builds the app with that version, attaches Perch-<version>.zip,
+# and updates the Homebrew cask in anaydas/homebrew-perch.
 name: Release
 
 on:
@@ -55,6 +56,10 @@ jobs:
           cat > notes.md <<'EOF'
           ## Install
 
+          **With Homebrew:** `brew install --cask anaydas/perch/perch` (or `brew upgrade --cask perch` to update)
+
+          **Or download it:**
+
           1. Download **Perch-VERSION.zip** below and unzip it.
           2. Drag **Perch.app** into your **Applications** folder.
           3. Open it. The first time, macOS says it can't check the app (Perch isn't notarized by Apple):
@@ -70,3 +75,29 @@ jobs:
             --title "Perch $VERSION" \
             --notes-file notes.md \
             --generate-notes
+
+      # Points the Homebrew cask (github.com/anaydas/homebrew-perch) at this release, so
+      # `brew upgrade --cask perch` picks it up. Needs the HOMEBREW_PERCH_TAP_TOKEN secret: a fine-grained
+      # token with Contents read and write on homebrew-perch only. Without it, this step is skipped.
+      - name: Update the Homebrew cask
+        env:
+          TAP_TOKEN: ${{ secrets.HOMEBREW_PERCH_TAP_TOKEN }}
+        run: |
+          if [ -z "$TAP_TOKEN" ]; then
+            echo "::notice::HOMEBREW_PERCH_TAP_TOKEN isn't set, so the Homebrew cask wasn't updated."
+            exit 0
+          fi
+          SHA=$(shasum -a 256 "Perch-$VERSION.zip" | cut -d ' ' -f 1)
+          git clone --depth 1 "https://x-access-token:${TAP_TOKEN}@github.com/anaydas/homebrew-perch.git" tap
+          cd tap
+          sed -i '' -E "s/^  version \".*\"/  version \"$VERSION\"/; s/^  sha256 \".*\"/  sha256 \"$SHA\"/" Casks/perch.rb
+          if git diff --quiet; then
+            echo "The cask is already at $VERSION."
+            exit 0
+          fi
+          git diff
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "perch $VERSION"
+          git push
+          echo "::notice::Homebrew cask updated to $VERSION."
